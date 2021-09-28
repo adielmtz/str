@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #define MAX_UINT64_LEN 21
 #define CASE_RETURN_ENUM_STR(val) case val: return #val
@@ -185,7 +186,7 @@ StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
     }
 
     char buff[MAX_UINT64_LEN];
-    int count = snprintf(buff, sizeof(buff), "%lld", value);
+    int count = snprintf(buff, sizeof(buff), "%" PRId64, value);
     char *dst = sb->str + sb->len;
     memcpy(dst, buff, count);
     sb->len += count;
@@ -199,7 +200,7 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
     }
 
     char buff[MAX_UINT64_LEN];
-    int count = snprintf(buff, sizeof(buff), "%llu", value);
+    int count = snprintf(buff, sizeof(buff), "%" PRIu64, value);
     char *dst = sb->str + sb->len;
     memcpy(dst, buff, count);
     sb->len += count;
