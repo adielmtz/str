@@ -92,6 +92,17 @@ void strbuilder_free(StrBuilder *sb)
     }
 }
 
+char* strbuilder_to_cstr(const StrBuilder *sb)
+{
+    char *result = malloc(sizeof(char) * sb->len + 1);
+    if (result != NULL) {
+        memcpy(result, sb->str, sb->len);
+        result[sb->len] = '\0';
+    }
+
+    return result;
+}
+
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
 {
     return strbuilder_append_str(sb, other->str, other->len);

@@ -22,6 +22,7 @@ StrBuilderErr strbuilder_create(StrBuilder **result);
 StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size);
 void strbuilder_free(StrBuilder *sb);
 
+char* strbuilder_to_cstr(const StrBuilder *sb);
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other);
 StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c);
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len);
