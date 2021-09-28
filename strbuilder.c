@@ -3,7 +3,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 
+#define MAX_UINT64_LEN 21
 #define CASE_RETURN_ENUM_STR(val) case val: return #val
 #define EMPTY_DEFAULT_SWITCH_CASE() default: assert(0)
 
@@ -92,7 +94,7 @@ void strbuilder_free(StrBuilder *sb)
     }
 }
 
-char* strbuilder_to_cstr(const StrBuilder *sb)
+char *strbuilder_to_cstr(const StrBuilder *sb)
 {
     char *result = malloc(sizeof(char) * sb->len + 1);
     if (result != NULL) {
@@ -123,5 +125,33 @@ StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
     char *dst = sb->str + sb->len;
     sb->len = newLen;
     memcpy(dst, str, len);
+    return STRBUILDER_SUCCESS;
+}
+
+StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
+{
+    if (!strbuilder_grow_str(sb, sb->len + MAX_UINT64_LEN)) {
+        return STRBUILDER_MEM_ALLOC_FAILED;
+    }
+
+    char buff[MAX_UINT64_LEN];
+    int count = snprintf(buff, sizeof(buff), "%lld", value);
+    char *dst = sb->str + sb->len;
+    memcpy(dst, buff, count);
+    sb->len += count;
+    return STRBUILDER_SUCCESS;
+}
+
+StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
+{
+    if (!strbuilder_grow_str(sb, sb->len + MAX_UINT64_LEN)) {
+        return STRBUILDER_MEM_ALLOC_FAILED;
+    }
+
+    char buff[MAX_UINT64_LEN];
+    int count = snprintf(buff, sizeof(buff), "%llu", value);
+    char *dst = sb->str + sb->len;
+    memcpy(dst, buff, count);
+    sb->len += count;
     return STRBUILDER_SUCCESS;
 }
