@@ -94,6 +94,35 @@ void strbuilder_free(StrBuilder *sb)
     }
 }
 
+size_t strbuilder_get_len(const StrBuilder *sb)
+{
+    return sb->len;
+}
+
+StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
+{
+    if (len > sb->size && !strbuilder_reallocate_str(sb, len)) {
+        return STRBUILDER_MEM_ALLOC_FAILED;
+    }
+
+    sb->len = len;
+    return STRBUILDER_SUCCESS;
+}
+
+size_t strbuilder_get_size(const StrBuilder *sb)
+{
+    return sb->size;
+}
+
+StrBuilderErr strbuilder_set_size(StrBuilder *sb, size_t size)
+{
+    if (!strbuilder_reallocate_str(sb, size)) {
+        return STRBUILDER_MEM_ALLOC_FAILED;
+    }
+
+    return STRBUILDER_SUCCESS;
+}
+
 char *strbuilder_to_cstr(const StrBuilder *sb)
 {
     char *result = malloc(sizeof(char) * sb->len + 1);
