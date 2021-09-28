@@ -134,6 +134,27 @@ char *strbuilder_to_cstr(const StrBuilder *sb)
     return result;
 }
 
+StrBuilderErr strbuilder_get_char(const StrBuilder *sb, size_t index, char *c)
+{
+    if (index > sb->len) {
+        *c = '\0';
+        return STRBUILDER_INDEX_OUT_OF_BOUNDS;
+    }
+
+    *c = sb->str[index];
+    return STRBUILDER_SUCCESS;
+}
+
+StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c)
+{
+    if (index > sb->len) {
+        return STRBUILDER_INDEX_OUT_OF_BOUNDS;
+    }
+
+    sb->str[index] = c;
+    return STRBUILDER_SUCCESS;
+}
+
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
 {
     return strbuilder_append_str(sb, other->str, other->len);
