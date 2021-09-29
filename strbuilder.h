@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define STRBUILDER_DEFAULT_SIZE 16
 
@@ -30,6 +31,9 @@ StrBuilderErr strbuilder_set_size(StrBuilder *sb, size_t size);
 
 StrBuilderErr strbuilder_get_char(const StrBuilder *sb, size_t index, char *c);
 StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c);
+
+int strbuilder_compare(const StrBuilder *a, const StrBuilder *b);
+bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b);
 
 char *strbuilder_to_cstr(const StrBuilder *sb);
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other);

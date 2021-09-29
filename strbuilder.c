@@ -1,7 +1,6 @@
 #include "strbuilder.h"
 
 #include <assert.h>
-#include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -9,6 +8,7 @@
 #define MAX_UINT64_LEN 21
 #define CASE_RETURN_ENUM_STR(val) case val: return #val
 #define EMPTY_DEFAULT_SWITCH_CASE() default: assert(0)
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 struct StrBuilder
 {
@@ -124,17 +124,6 @@ StrBuilderErr strbuilder_set_size(StrBuilder *sb, size_t size)
     return STRBUILDER_SUCCESS;
 }
 
-char *strbuilder_to_cstr(const StrBuilder *sb)
-{
-    char *result = malloc(sizeof(char) * sb->len + 1);
-    if (result != NULL) {
-        memcpy(result, sb->str, sb->len);
-        result[sb->len] = '\0';
-    }
-
-    return result;
-}
-
 StrBuilderErr strbuilder_get_char(const StrBuilder *sb, size_t index, char *c)
 {
     if (index > sb->len) {
@@ -154,6 +143,36 @@ StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c)
 
     sb->str[index] = c;
     return STRBUILDER_SUCCESS;
+}
+
+int strbuilder_compare(const StrBuilder *a, const StrBuilder *b)
+{
+    if (a == b) {
+        return 0;
+    }
+
+    int result = memcmp(a->str, b->str, MIN(a->len, b->len));
+    if (!result) {
+        return (int) (a->len - b->len);
+    }
+
+    return result;
+}
+
+bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b)
+{
+    return strbuilder_compare(a, b) == 0;
+}
+
+char *strbuilder_to_cstr(const StrBuilder *sb)
+{
+    char *result = malloc(sizeof(char) * sb->len + 1);
+    if (result != NULL) {
+        memcpy(result, sb->str, sb->len);
+        result[sb->len] = '\0';
+    }
+
+    return result;
 }
 
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
