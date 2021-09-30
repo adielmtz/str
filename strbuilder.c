@@ -106,6 +106,11 @@ StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
         return STRBUILDER_MEM_ALLOC_FAILED;
     }
 
+    if (len > sb->len) {
+        char *dst = sb->str + sb->len;
+        memset(dst, '\0', len - sb->len);
+    }
+
     sb->len = len;
     return STRBUILDER_SUCCESS;
 }
