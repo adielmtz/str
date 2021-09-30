@@ -180,6 +180,21 @@ char *strbuilder_to_cstr(const StrBuilder *sb)
     return result;
 }
 
+StrBuilderErr strbuilder_copy(const StrBuilder *src, StrBuilder **result)
+{
+    StrBuilder *sb;
+    StrBuilderErr err;
+    err = strbuilder_create_sz(&sb, src->len);
+    if (err != STRBUILDER_SUCCESS) {
+        return err;
+    }
+
+    memcpy(sb->str, src->str, src->len);
+    sb->len = src->len;
+    *result = sb;
+    return STRBUILDER_SUCCESS;
+}
+
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
 {
     return strbuilder_append_str(sb, other->str, other->len);
