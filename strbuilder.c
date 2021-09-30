@@ -245,3 +245,28 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
     sb->len += count;
     return STRBUILDER_SUCCESS;
 }
+
+StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
+{
+    if (times == 0) {
+        sb->len = 0;
+        return STRBUILDER_SUCCESS;
+    } else if (times < 0) {
+        return STRBUILDER_INDEX_OUT_OF_BOUNDS;
+    }
+
+    size_t newLen = sb->len + (sb->len * (times - 1));
+    if (!strbuilder_grow_str(sb, newLen)) {
+        return STRBUILDER_MEM_ALLOC_FAILED;
+    }
+
+    char *dst = sb->str + sb->len;
+    while (--times) {
+        memcpy(dst, sb->str, sb->len);
+        dst += sb->len;
+    }
+
+    sb->len = newLen;
+    return STRBUILDER_SUCCESS;
+}
+
