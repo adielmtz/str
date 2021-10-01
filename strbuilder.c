@@ -272,7 +272,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 
 bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len)
 {
-    if (sb->len == 0 || sb->len < prefix_len) {
+    if (sb->len < prefix_len) {
         return false;
     }
 
@@ -281,7 +281,7 @@ bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t pre
 
 bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len)
 {
-    if (sb->len == 0 || sb->len < suffix_len) {
+    if (sb->len < suffix_len) {
         return false;
     }
 
