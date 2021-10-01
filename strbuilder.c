@@ -270,3 +270,21 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
     return STRBUILDER_SUCCESS;
 }
 
+bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len)
+{
+    if (sb->len == 0 || sb->len < prefix_len) {
+        return false;
+    }
+
+    return memcmp(sb->str, prefix, prefix_len) == 0;
+}
+
+bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len)
+{
+    if (sb->len == 0 || sb->len < suffix_len) {
+        return false;
+    }
+
+    char *ptr = sb->str + sb->len - suffix_len;
+    return memcmp(ptr, suffix, suffix_len) == 0;
+}
