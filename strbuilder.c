@@ -267,7 +267,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 
     char *dst = sb->str + sb->len;
     while (--times) {
-        memcpy(dst, sb->str, sb->len);
+        memmove(dst, sb->str, sb->len);
         dst += sb->len;
     }
 
