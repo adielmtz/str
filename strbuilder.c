@@ -180,6 +180,11 @@ char *strbuilder_to_cstr(const StrBuilder *sb)
     return result;
 }
 
+char *strbuilder_get_cstr(const StrBuilder *sb)
+{
+    return sb->str;
+}
+
 StrBuilderErr strbuilder_copy(const StrBuilder *src, StrBuilder **result)
 {
     StrBuilder *sb;
