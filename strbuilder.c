@@ -10,6 +10,18 @@
 #define EMPTY_DEFAULT_SWITCH_CASE() default: assert(0)
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
+#define STRBUILDER_GROW_STR(sb, requiredSize) do {       \
+    if ((requiredSize) > (sb)->size) {                   \
+        size_t newSize = (sb)->size * 2;                 \
+        if ((requiredSize) > newSize) {                  \
+            newSize = (requiredSize);                    \
+        }                                                \
+        if (!strbuilder_reallocate_str((sb), newSize)) { \
+            return STRBUILDER_MEM_ALLOC_FAILED;          \
+        }                                                \
+    }                                                    \
+} while (0)
+
 struct StrBuilder
 {
     size_t size;
@@ -31,21 +43,6 @@ static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
     }
 
     return false;
-}
-
-static bool strbuilder_grow_str(StrBuilder *sb, size_t requiredSize)
-{
-    if (requiredSize > sb->size) {
-        size_t newSize = sb->size * 2;
-        if (requiredSize > newSize) {
-            newSize = requiredSize;
-        }
-
-        return strbuilder_reallocate_str(sb, newSize);
-    }
-
-    // The operation succeeded as there was no need to reallocate
-    return true;
 }
 
 const char *strbuilder_get_error_str(StrBuilderErr err)
@@ -213,10 +210,7 @@ StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c)
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
 {
     size_t newLen = sb->len + len;
-    if (!strbuilder_grow_str(sb, newLen)) {
-        return STRBUILDER_MEM_ALLOC_FAILED;
-    }
-
+    STRBUILDER_GROW_STR(sb, newLen);
     char *dst = sb->str + sb->len;
     sb->len = newLen;
     memcpy(dst, str, len);
@@ -225,10 +219,7 @@ StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
 
 StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
 {
-    if (!strbuilder_grow_str(sb, sb->len + MAX_UINT64_LEN)) {
-        return STRBUILDER_MEM_ALLOC_FAILED;
-    }
-
+    STRBUILDER_GROW_STR(sb, sb->len + MAX_UINT64_LEN);
     char buff[MAX_UINT64_LEN];
     int count = snprintf(buff, sizeof(buff), "%" PRId64, value);
     char *dst = sb->str + sb->len;
@@ -239,10 +230,7 @@ StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
 
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
 {
-    if (!strbuilder_grow_str(sb, sb->len + MAX_UINT64_LEN)) {
-        return STRBUILDER_MEM_ALLOC_FAILED;
-    }
-
+    STRBUILDER_GROW_STR(sb, sb->len + MAX_UINT64_LEN);
     char buff[MAX_UINT64_LEN];
     int count = snprintf(buff, sizeof(buff), "%" PRIu64, value);
     char *dst = sb->str + sb->len;
@@ -261,10 +249,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
     }
 
     size_t newLen = sb->len + (sb->len * (times - 1));
-    if (!strbuilder_grow_str(sb, newLen)) {
-        return STRBUILDER_MEM_ALLOC_FAILED;
-    }
-
+    STRBUILDER_GROW_STR(sb, newLen);
     char *dst = sb->str + sb->len;
     while (--times) {
         memmove(dst, sb->str, sb->len);
