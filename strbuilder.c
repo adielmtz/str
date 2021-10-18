@@ -17,7 +17,7 @@
             newSize = (requiredSize);                    \
         }                                                \
         if (!strbuilder_reallocate_str((sb), newSize)) { \
-            return STRBUILDER_MEM_ALLOC_FAILED;          \
+            return STRBUILDER_ERROR_MEM_ALLOC_FAILED;    \
         }                                                \
     }                                                    \
 } while (0)
@@ -48,11 +48,9 @@ static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
 const char *strbuilder_get_error_str(StrBuilderErr err)
 {
     switch (err) {
-        CASE_RETURN_ENUM_STR(STRBUILDER_SUCCESS);
-        CASE_RETURN_ENUM_STR(STRBUILDER_ERROR);
-        CASE_RETURN_ENUM_STR(STRBUILDER_NOT_IMPLEMENTED);
-        CASE_RETURN_ENUM_STR(STRBUILDER_MEM_ALLOC_FAILED);
-        CASE_RETURN_ENUM_STR(STRBUILDER_INDEX_OUT_OF_BOUNDS);
+        CASE_RETURN_ENUM_STR(STRBUILDER_ERROR_NONE);
+        CASE_RETURN_ENUM_STR(STRBUILDER_ERROR_MEM_ALLOC_FAILED);
+        CASE_RETURN_ENUM_STR(STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
         EMPTY_DEFAULT_SWITCH_CASE();
     }
 }
@@ -67,21 +65,21 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
     StrBuilder *sb = malloc(sizeof(StrBuilder));
     if (sb == NULL) {
         *result = NULL;
-        return STRBUILDER_MEM_ALLOC_FAILED;
+        return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
     }
 
     sb->str = calloc(size, sizeof(char));
     if (sb->str == NULL) {
         free(sb);
         *result = NULL;
-        return STRBUILDER_MEM_ALLOC_FAILED;
+        return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
     }
 
     // Everything is OK!
     sb->size = size;
     sb->len = 0;
     *result = sb;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 void strbuilder_free(StrBuilder *sb)
@@ -100,7 +98,7 @@ size_t strbuilder_get_len(const StrBuilder *sb)
 StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
 {
     if (len > sb->size && !strbuilder_reallocate_str(sb, len)) {
-        return STRBUILDER_MEM_ALLOC_FAILED;
+        return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
     }
 
     if (len > sb->len) {
@@ -109,7 +107,7 @@ StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
     }
 
     sb->len = len;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 size_t strbuilder_get_size(const StrBuilder *sb)
@@ -120,31 +118,31 @@ size_t strbuilder_get_size(const StrBuilder *sb)
 StrBuilderErr strbuilder_set_size(StrBuilder *sb, size_t size)
 {
     if (!strbuilder_reallocate_str(sb, size)) {
-        return STRBUILDER_MEM_ALLOC_FAILED;
+        return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
     }
 
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 StrBuilderErr strbuilder_get_char(const StrBuilder *sb, size_t index, char *c)
 {
     if (index > sb->len) {
         *c = '\0';
-        return STRBUILDER_INDEX_OUT_OF_BOUNDS;
+        return STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS;
     }
 
     *c = sb->str[index];
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c)
 {
     if (index > sb->len) {
-        return STRBUILDER_INDEX_OUT_OF_BOUNDS;
+        return STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS;
     }
 
     sb->str[index] = c;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 int strbuilder_compare(const StrBuilder *a, const StrBuilder *b)
@@ -187,14 +185,14 @@ StrBuilderErr strbuilder_copy(const StrBuilder *src, StrBuilder **result)
     StrBuilder *sb;
     StrBuilderErr err;
     err = strbuilder_create_sz(&sb, src->len);
-    if (err != STRBUILDER_SUCCESS) {
+    if (err != STRBUILDER_ERROR_NONE) {
         return err;
     }
 
     memcpy(sb->str, src->str, src->len);
     sb->len = src->len;
     *result = sb;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
@@ -214,7 +212,7 @@ StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
     char *dst = sb->str + sb->len;
     sb->len = newLen;
     memcpy(dst, str, len);
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
@@ -225,7 +223,7 @@ StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
     char *dst = sb->str + sb->len;
     memcpy(dst, buff, count);
     sb->len += count;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
@@ -236,16 +234,16 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
     char *dst = sb->str + sb->len;
     memcpy(dst, buff, count);
     sb->len += count;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 {
     if (times == 0) {
         sb->len = 0;
-        return STRBUILDER_SUCCESS;
+        return STRBUILDER_ERROR_NONE;
     } else if (times < 0) {
-        return STRBUILDER_INDEX_OUT_OF_BOUNDS;
+        return STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS;
     }
 
     size_t newLen = sb->len + (sb->len * (times - 1));
@@ -257,7 +255,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
     }
 
     sb->len = newLen;
-    return STRBUILDER_SUCCESS;
+    return STRBUILDER_ERROR_NONE;
 }
 
 bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len)

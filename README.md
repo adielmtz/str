@@ -34,7 +34,7 @@ int main()
     StrBuilderErr err;    
     err = strbuilder_create(&sb);
     
-    if (err == STRBUILDER_SUCCESS) {
+    if (err == STRBUILDER_ERROR_NONE) {
         printf("Good to go!\n");
     } else {
         printf("PANIK! %s\n", strbuilder_get_error_str(err));
