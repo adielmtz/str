@@ -30,18 +30,18 @@
 
 struct StrBuilder
 {
+    StrBuilderErr err;
     char *str;
     size_t size;
     size_t len;
-    StrBuilderErr err;
 };
 
 static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
 {
     char *tmp = realloc(sb->str, sizeof(char) * newSize);
     if (tmp != NULL) {
-        sb->size = newSize;
         sb->str = tmp;
+        sb->size = newSize;
         if (sb->len > newSize) {
             sb->len = newSize;
         }
@@ -60,23 +60,22 @@ StrBuilderErr strbuilder_create(StrBuilder **result)
 StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
 {
     StrBuilder *sb = malloc(sizeof(StrBuilder));
-    if (sb == NULL) {
-        *result = NULL;
-        return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
+    StrBuilderErr err = STRBUILDER_ERROR_MEM_ALLOC_FAILED;
+    *result = NULL;
+
+    if (sb != NULL) {
+        sb->str = malloc(sizeof(char) * size);
+        if (sb->str != NULL) {
+            sb->size = size;
+            sb->len = 0;
+            *result = sb;
+            err = STRBUILDER_ERROR_NONE;
+        } else {
+            free(sb);
+        }
     }
 
-    sb->str = malloc(sizeof(char) * size);
-    if (sb->str == NULL) {
-        free(sb);
-        *result = NULL;
-        return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
-    }
-
-    // Everything is OK!
-    sb->size = size;
-    sb->len = 0;
-    *result = sb;
-    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
+    return err;
 }
 
 void strbuilder_free(StrBuilder *sb)
@@ -110,10 +109,7 @@ size_t strbuilder_get_len(const StrBuilder *sb)
 
 StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
 {
-    if (len > sb->size && !strbuilder_reallocate_str(sb, len)) {
-        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_MEM_ALLOC_FAILED);
-    }
-
+    GROW_STR(sb, len);
     if (len > sb->len) {
         char *dst = sb->str + sb->len;
         memset(dst, '\0', len - sb->len);
@@ -190,19 +186,19 @@ const char *strbuilder_get_cstr(const StrBuilder *sb)
     return sb->str;
 }
 
-StrBuilderErr strbuilder_copy(const StrBuilder *src, StrBuilder **result)
+StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
 {
-    StrBuilder *sb;
-    StrBuilderErr err;
-    err = strbuilder_create_sz(&sb, src->len);
-    if (err != STRBUILDER_ERROR_NONE) {
-        SET_ERROR_RETURN(sb, err);
+    StrBuilder *copy;
+    StrBuilderErr err = strbuilder_create_sz(&copy, sb->len);
+    *result = NULL;
+
+    if (err == STRBUILDER_ERROR_NONE) {
+        memcpy(copy->str, sb->str, sb->len);
+        copy->len = sb->len;
+        *result = copy;
     }
 
-    memcpy(sb->str, src->str, src->len);
-    sb->len = src->len;
-    *result = sb;
-    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
+    SET_ERROR_RETURN(sb, err);
 }
 
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
@@ -212,7 +208,10 @@ StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
 
 StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c)
 {
-    return strbuilder_append_str(sb, &c, 1);
+    GROW_STR(sb, sb->len + 1);
+    sb->str[sb->len] = c;
+    sb->len++;
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
@@ -249,22 +248,24 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
 
 StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 {
-    if (times == 0) {
-        sb->len = 0;
-        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
-    } else if (times < 0) {
+    if (times < 0) {
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
     }
 
-    size_t newLen = sb->len + (sb->len * (times - 1));
-    GROW_STR(sb, newLen);
-    char *dst = sb->str + sb->len;
-    while (--times) {
-        memmove(dst, sb->str, sb->len);
-        dst += sb->len;
+    if (times == 0) {
+        sb->len = 0;
+    } else if (times > 1) {
+        size_t newLen = sb->len + (sb->len * (times - 1));
+        GROW_STR(sb, newLen);
+        char *dst = sb->str + sb->len;
+        while (--times) {
+            memmove(dst, sb->str, sb->len);
+            dst += sb->len;
+        }
+
+        sb->len = newLen;
     }
 
-    sb->len = newLen;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 

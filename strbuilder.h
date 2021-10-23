@@ -36,7 +36,7 @@ bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b);
 
 char *strbuilder_to_cstr(const StrBuilder *sb);
 const char *strbuilder_get_cstr(const StrBuilder *sb);
-StrBuilderErr strbuilder_copy(const StrBuilder *src, StrBuilder **result);
+StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result);
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other);
 StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c);
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len);
