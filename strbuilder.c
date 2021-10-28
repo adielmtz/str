@@ -60,7 +60,6 @@ StrBuilderErr strbuilder_create(StrBuilder **result)
 StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
 {
     StrBuilder *sb = malloc(sizeof(StrBuilder));
-    StrBuilderErr err = STRBUILDER_ERROR_MEM_ALLOC_FAILED;
     *result = NULL;
 
     if (sb != NULL) {
@@ -69,13 +68,13 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
             sb->size = size;
             sb->len = 0;
             *result = sb;
-            err = STRBUILDER_ERROR_NONE;
+            SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
         } else {
             free(sb);
         }
     }
 
-    return err;
+    return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
 }
 
 void strbuilder_free(StrBuilder *sb)
