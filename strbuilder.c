@@ -274,15 +274,15 @@ StrBuilderErr strbuilder_trim(StrBuilder *sb)
 {
     char *start = sb->str;
     char *end = sb->str + sb->len - 1;
-    while (isspace(*start) && start < end) {
+    while (isspace(*start) && start <= end) {
         start++;
     }
 
-    while (isspace(*end) && end > start) {
+    while (isspace(*end) && end >= start) {
         end--;
     }
 
-    if (start == end) {
+    if (start > end) {
         sb->len = 0; // "   " (3) -> trim -> "" (0)
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
     }
