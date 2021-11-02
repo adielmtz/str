@@ -44,6 +44,7 @@ StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value);
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value);
 
 StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times);
+StrBuilderErr strbuilder_trim(StrBuilder *sb);
 bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len);
 bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len);
 

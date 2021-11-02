@@ -3,8 +3,12 @@
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 #define MAX_UINT64_LEN 21
+#define LONG_FMT "%" PRId64
+#define ULONG_FMT "%" PRIu64
+
 #define CASE_RETURN_ENUM_STR(val) case val: return #val
 
 #ifndef MIN
@@ -227,7 +231,7 @@ StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
 {
     GROW_STR(sb, sb->len + MAX_UINT64_LEN);
     char buff[MAX_UINT64_LEN];
-    int count = snprintf(buff, sizeof(buff), "%" PRId64, value);
+    int count = snprintf(buff, sizeof(buff), LONG_FMT, value);
     char *dst = sb->str + sb->len;
     memcpy(dst, buff, count);
     sb->len += count;
@@ -238,7 +242,7 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
 {
     GROW_STR(sb, sb->len + MAX_UINT64_LEN);
     char buff[MAX_UINT64_LEN];
-    int count = snprintf(buff, sizeof(buff), "%" PRIu64, value);
+    int count = snprintf(buff, sizeof(buff), ULONG_FMT, value);
     char *dst = sb->str + sb->len;
     memcpy(dst, buff, count);
     sb->len += count;
@@ -249,9 +253,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 {
     if (times < 0) {
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
-    }
-
-    if (times == 0) {
+    } else if (times == 0) {
         sb->len = 0;
     } else if (times > 1) {
         size_t newLen = sb->len + (sb->len * (times - 1));
@@ -265,6 +267,32 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
         sb->len = newLen;
     }
 
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
+}
+
+StrBuilderErr strbuilder_trim(StrBuilder *sb)
+{
+    char *start = sb->str;
+    char *end = sb->str + sb->len - 1;
+    while (isspace(*start) && start < end) {
+        start++;
+    }
+
+    while (isspace(*end) && end > start) {
+        end--;
+    }
+
+    if (start == end) {
+        sb->len = 0; // "   " (3) -> trim -> "" (0)
+        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
+    }
+
+    size_t newLen = end - start + 1;
+    if (start > sb->str) {
+        memmove(sb->str, start, newLen);
+    }
+
+    sb->len = newLen;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
