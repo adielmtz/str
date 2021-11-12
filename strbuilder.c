@@ -81,12 +81,43 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
     return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
 }
 
+StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
+{
+    StrBuilder *copy;
+    StrBuilderErr err = strbuilder_create_sz(&copy, sb->len);
+    *result = NULL;
+
+    if (err == STRBUILDER_ERROR_NONE) {
+        memcpy(copy->str, sb->str, sb->len);
+        copy->len = sb->len;
+        *result = copy;
+    }
+
+    SET_ERROR_RETURN(sb, err);
+}
+
 void strbuilder_free(StrBuilder *sb)
 {
     if (sb != NULL) {
         free(sb->str);
         free(sb);
     }
+}
+
+char *strbuilder_to_cstr(const StrBuilder *sb)
+{
+    char *result = malloc(sizeof(char) * sb->len + 1);
+    if (result != NULL) {
+        memcpy(result, sb->str, sb->len);
+        result[sb->len] = '\0';
+    }
+
+    return result;
+}
+
+const char *strbuilder_get_cstr(const StrBuilder *sb)
+{
+    return sb->str;
 }
 
 StrBuilderErr strbuilder_get_err(const StrBuilder *sb)
@@ -173,35 +204,23 @@ bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b)
     return strbuilder_compare(a, b) == 0;
 }
 
-char *strbuilder_to_cstr(const StrBuilder *sb)
+bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len)
 {
-    char *result = malloc(sizeof(char) * sb->len + 1);
-    if (result != NULL) {
-        memcpy(result, sb->str, sb->len);
-        result[sb->len] = '\0';
+    if (sb->len < prefix_len) {
+        return false;
     }
 
-    return result;
+    return memcmp(sb->str, prefix, prefix_len) == 0;
 }
 
-const char *strbuilder_get_cstr(const StrBuilder *sb)
+bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len)
 {
-    return sb->str;
-}
-
-StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
-{
-    StrBuilder *copy;
-    StrBuilderErr err = strbuilder_create_sz(&copy, sb->len);
-    *result = NULL;
-
-    if (err == STRBUILDER_ERROR_NONE) {
-        memcpy(copy->str, sb->str, sb->len);
-        copy->len = sb->len;
-        *result = copy;
+    if (sb->len < suffix_len) {
+        return false;
     }
 
-    SET_ERROR_RETURN(sb, err);
+    char *ptr = sb->str + sb->len - suffix_len;
+    return memcmp(ptr, suffix, suffix_len) == 0;
 }
 
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
@@ -245,27 +264,6 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
-StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
-{
-    if (times < 0) {
-        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
-    } else if (times == 0) {
-        sb->len = 0;
-    } else if (times > 1) {
-        size_t newLen = sb->len + (sb->len * (times - 1));
-        GROW_STR(sb, newLen);
-        char *dst = sb->str + sb->len;
-        while (--times) {
-            memmove(dst, sb->str, sb->len);
-            dst += sb->len;
-        }
-
-        sb->len = newLen;
-    }
-
-    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
-}
-
 StrBuilderErr strbuilder_trim(StrBuilder *sb)
 {
     char *start = sb->str;
@@ -292,21 +290,23 @@ StrBuilderErr strbuilder_trim(StrBuilder *sb)
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
-bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len)
+StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 {
-    if (sb->len < prefix_len) {
-        return false;
+    if (times < 0) {
+        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
+    } else if (times == 0) {
+        sb->len = 0;
+    } else if (times > 1) {
+        size_t newLen = sb->len + (sb->len * (times - 1));
+        GROW_STR(sb, newLen);
+        char *dst = sb->str + sb->len;
+        while (--times) {
+            memmove(dst, sb->str, sb->len);
+            dst += sb->len;
+        }
+
+        sb->len = newLen;
     }
 
-    return memcmp(sb->str, prefix, prefix_len) == 0;
-}
-
-bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len)
-{
-    if (sb->len < suffix_len) {
-        return false;
-    }
-
-    char *ptr = sb->str + sb->len - suffix_len;
-    return memcmp(ptr, suffix, suffix_len) == 0;
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }

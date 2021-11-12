@@ -18,7 +18,11 @@ typedef struct StrBuilder StrBuilder;
 
 StrBuilderErr strbuilder_create(StrBuilder **result);
 StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size);
+StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result);
 void strbuilder_free(StrBuilder *sb);
+
+char *strbuilder_to_cstr(const StrBuilder *sb);
+const char *strbuilder_get_cstr(const StrBuilder *sb);
 
 StrBuilderErr strbuilder_get_err(const StrBuilder *sb);
 const char *strbuilder_get_error_msg(const StrBuilder *sb);
@@ -33,19 +37,15 @@ StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c);
 
 int strbuilder_compare(const StrBuilder *a, const StrBuilder *b);
 bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b);
+bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len);
+bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len);
 
-char *strbuilder_to_cstr(const StrBuilder *sb);
-const char *strbuilder_get_cstr(const StrBuilder *sb);
-StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result);
 StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other);
 StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c);
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len);
 StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value);
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value);
-
-StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times);
 StrBuilderErr strbuilder_trim(StrBuilder *sb);
-bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len);
-bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len);
+StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times);
 
 #endif // STRBUILDER_STRBUILDER_H
