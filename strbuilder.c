@@ -5,7 +5,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 
-#define MAX_UINT64_LEN 21
+#define UINT64_MAX_STRLEN 21
 #define LONG_FMT "%" PRId64
 #define ULONG_FMT "%" PRIu64
 
@@ -229,22 +229,18 @@ StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
 
 StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
 {
-    GROW_STR(sb, sb->len + MAX_UINT64_LEN);
-    char buff[MAX_UINT64_LEN];
-    int count = snprintf(buff, sizeof(buff), LONG_FMT, value);
-    char *dst = sb->str + sb->len;
-    memcpy(dst, buff, count);
+    GROW_STR(sb, sb->len + UINT64_MAX_STRLEN);
+    char *ptr = sb->str + sb->len;
+    int count = snprintf(ptr, sb->size - sb->len, LONG_FMT, value);
     sb->len += count;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
 {
-    GROW_STR(sb, sb->len + MAX_UINT64_LEN);
-    char buff[MAX_UINT64_LEN];
-    int count = snprintf(buff, sizeof(buff), ULONG_FMT, value);
-    char *dst = sb->str + sb->len;
-    memcpy(dst, buff, count);
+    GROW_STR(sb, sb->len + UINT64_MAX_STRLEN);
+    char *ptr = sb->str + sb->len;
+    int count = snprintf(ptr, sb->size - sb->len, ULONG_FMT, value);
     sb->len += count;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
