@@ -275,6 +275,21 @@ StrBuilderErr strbuilder_append_d(StrBuilder *sb, double value)
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
+int strbuilder_replace_c(StrBuilder *sb, char search, char replace)
+{
+    int n = 0;
+    if (sb->len > 0) {
+        char *ptr = sb->str;
+        char *end = sb->str + sb->len;
+        while ((ptr = memchr(ptr, search, end - ptr)) != NULL) {
+            *ptr++ = replace;
+            n++;
+        }
+    }
+
+    return n;
+}
+
 StrBuilderErr strbuilder_trim(StrBuilder *sb)
 {
     char *start = sb->str;
