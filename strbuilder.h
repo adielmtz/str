@@ -45,6 +45,8 @@ StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c);
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len);
 StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value);
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value);
+StrBuilderErr strbuilder_append_d(StrBuilder *sb, double value);
+
 StrBuilderErr strbuilder_trim(StrBuilder *sb);
 StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times);
 

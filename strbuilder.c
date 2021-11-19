@@ -3,9 +3,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <float.h>
 #include <ctype.h>
 
 #define UINT64_MAX_STRLEN 21
+#define DOUBLE_MAX_STRLEN (3 + DBL_MANT_DIG - DBL_MIN_EXP)
 #define LONG_FMT "%" PRId64
 #define ULONG_FMT "%" PRIu64
 
@@ -260,6 +262,15 @@ StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
     GROW_STR(sb, sb->len + UINT64_MAX_STRLEN);
     char *ptr = sb->str + sb->len;
     int count = snprintf(ptr, sb->size - sb->len, ULONG_FMT, value);
+    sb->len += count;
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
+}
+
+StrBuilderErr strbuilder_append_d(StrBuilder *sb, double value)
+{
+    GROW_STR(sb, sb->len + DOUBLE_MAX_STRLEN);
+    char *ptr = sb->str + sb->len;
+    int count = snprintf(ptr, sb->size - sb->len, "%f", value);
     sb->len += count;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
