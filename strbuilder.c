@@ -206,6 +206,27 @@ bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b)
     return strbuilder_compare(a, b) == 0;
 }
 
+bool strbuilder_contains(const StrBuilder *sb, const char *needle, size_t needle_len)
+{
+    if (needle_len == 0) {
+        return true;
+    } else if (needle_len == 1) {
+        return memchr(sb->str, *needle, sb->len) != NULL;
+    } else if (needle_len <= sb->len) {
+        char *ptr = sb->str;
+        char *end = sb->str + sb->len;
+        while (ptr + needle_len < end && (ptr = memchr(ptr, *needle, end - ptr)) != NULL) {
+            if (memcmp(ptr, needle, needle_len) == 0) {
+                return true;
+            }
+
+            ptr += needle_len;
+        }
+    }
+
+    return false;
+}
+
 bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len)
 {
     if (sb->len < prefix_len) {

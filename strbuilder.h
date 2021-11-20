@@ -37,6 +37,7 @@ StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c);
 
 int strbuilder_compare(const StrBuilder *a, const StrBuilder *b);
 bool strbuilder_equals(const StrBuilder *a, const StrBuilder *b);
+bool strbuilder_contains(const StrBuilder *sb, const char *needle, size_t needle_len);
 bool strbuilder_starts_with(const StrBuilder *sb, const char *prefix, size_t prefix_len);
 bool strbuilder_ends_with(const StrBuilder *sb, const char *suffix, size_t suffix_len);
 
