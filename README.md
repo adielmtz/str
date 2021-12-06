@@ -11,7 +11,7 @@ can use `strbuilder_free` to deallocate the StrBuilder object.
 ```c
 StrBuilder *sb;
 
-// Allocate using the default memory size (uses STRBUILDER_DEFAULT_SIZE macro):
+// Allocate using the default memory size:
 if (strbuilder_create(&sb) == STRBUILDER_ERROR_NONE) {
     // Success!
 }
@@ -89,18 +89,18 @@ strbuilder_append_str(sb, "Contains\0NULL\0chars!", 20); // Works as long as you
 ```
 
 ### Get the resulting string
-Use `strbuilder_to_cstr` to get a C-style string:
+Use `strbuilder_c_string` to get a C-style string:
 ```c
-char *str = strbuilder_to_cstr(sb);
+char *str = strbuilder_c_string(sb);
 printf("My string is: %s\n", str);
 free(str); // Don't forget to free it after you're done with it!
 ```
 This function allocates a new char* buffer and copies the string into it, appending a NULL-char at the end.
 
-Furthermore, you can use `strbuilder_get_cstr` to get the internal char pointer used by the object, avoiding an
+Furthermore, you can use `strbuilder_get_str` to get the internal char pointer used by the object, avoiding an
 additional memory allocation:
 ```c
-const char *str = strbuilder_get_cstr(sb);
+const char *str = strbuilder_get_str(sb);
 printf("My string is: %s\n", str);
 ```
 Please note that this function does not guarantee that the string is NULL-terminated as it just returns the internal

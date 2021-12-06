@@ -83,6 +83,14 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
     return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
 }
 
+void strbuilder_free(StrBuilder *sb)
+{
+    if (sb != NULL) {
+        free(sb->str);
+        free(sb);
+    }
+}
+
 StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
 {
     StrBuilder *copy;
@@ -98,15 +106,7 @@ StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
     SET_ERROR_RETURN(sb, err);
 }
 
-void strbuilder_free(StrBuilder *sb)
-{
-    if (sb != NULL) {
-        free(sb->str);
-        free(sb);
-    }
-}
-
-char *strbuilder_to_cstr(const StrBuilder *sb)
+char *strbuilder_c_string(const StrBuilder *sb)
 {
     char *result = malloc(sizeof(char) * sb->len + 1);
     if (result != NULL) {
@@ -117,7 +117,7 @@ char *strbuilder_to_cstr(const StrBuilder *sb)
     return result;
 }
 
-const char *strbuilder_get_cstr(const StrBuilder *sb)
+const char *strbuilder_get_str(const StrBuilder *sb)
 {
     return sb->str;
 }
@@ -166,9 +166,9 @@ StrBuilderErr strbuilder_set_size(StrBuilder *sb, size_t size)
     SET_ERROR_RETURN(sb, success ? STRBUILDER_ERROR_NONE : STRBUILDER_ERROR_MEM_ALLOC_FAILED);
 }
 
-StrBuilderErr strbuilder_get_char(StrBuilder *sb, size_t index, char *c)
+StrBuilderErr strbuilder_get_char(StrBuilder *sb, int index, char *c)
 {
-    if (index > sb->len) {
+    if (index < 0 || index >= sb->len) {
         *c = '\0';
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
     }
@@ -177,9 +177,9 @@ StrBuilderErr strbuilder_get_char(StrBuilder *sb, size_t index, char *c)
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
-StrBuilderErr strbuilder_set_char(StrBuilder *sb, size_t index, char c)
+StrBuilderErr strbuilder_set_char(StrBuilder *sb, int index, char c)
 {
-    if (index > sb->len) {
+    if (index < 0 || index >= sb->len) {
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
     }
 
