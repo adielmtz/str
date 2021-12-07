@@ -34,6 +34,12 @@
     }                                                                \
 } while (0)
 
+static void *(*mem_allocate)(size_t) = malloc;
+
+static void *(*mem_reallocate)(void *, size_t) = realloc;
+
+static void (*mem_free)(void *) = free;
+
 struct StrBuilder
 {
     StrBuilderErr err;
@@ -44,7 +50,7 @@ struct StrBuilder
 
 static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
 {
-    char *tmp = realloc(sb->str, sizeof(char) * newSize);
+    char *tmp = mem_reallocate(sb->str, sizeof(char) * newSize);
     if (tmp != NULL) {
         sb->str = tmp;
         sb->size = newSize;
@@ -58,6 +64,21 @@ static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
     return false;
 }
 
+void strbuilder_set_mem_allocator(void *(*mem_alloc_fn)(size_t))
+{
+    mem_allocate = mem_alloc_fn;
+}
+
+void strbuilder_set_mem_reallocator(void *(*mem_realloc_fn)(void *, size_t))
+{
+    mem_reallocate = mem_realloc_fn;
+}
+
+void strbuilder_set_mem_free(void (*mem_free_fn)(void *))
+{
+    mem_free = mem_free_fn;
+}
+
 StrBuilderErr strbuilder_create(StrBuilder **result)
 {
     return strbuilder_create_sz(result, STRBUILDER_DEFAULT_SIZE);
@@ -65,18 +86,18 @@ StrBuilderErr strbuilder_create(StrBuilder **result)
 
 StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
 {
-    StrBuilder *sb = malloc(sizeof(StrBuilder));
+    StrBuilder *sb = mem_allocate(sizeof(StrBuilder));
     *result = NULL;
 
     if (sb != NULL) {
-        sb->str = malloc(sizeof(char) * size);
+        sb->str = mem_allocate(sizeof(char) * size);
         if (sb->str != NULL) {
             sb->size = size;
             sb->len = 0;
             *result = sb;
             SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
         } else {
-            free(sb);
+            mem_free(sb);
         }
     }
 
@@ -86,8 +107,8 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
 void strbuilder_free(StrBuilder *sb)
 {
     if (sb != NULL) {
-        free(sb->str);
-        free(sb);
+        mem_free(sb->str);
+        mem_free(sb);
     }
 }
 
@@ -108,7 +129,7 @@ StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
 
 char *strbuilder_c_string(const StrBuilder *sb)
 {
-    char *result = malloc(sizeof(char) * sb->len + 1);
+    char *result = mem_allocate(sizeof(char) * sb->len + 1);
     if (result != NULL) {
         memcpy(result, sb->str, sb->len);
         result[sb->len] = '\0';

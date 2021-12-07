@@ -17,6 +17,30 @@ typedef enum StrBuilderErr
 typedef struct StrBuilder StrBuilder;
 
 /**
+ * Sets the memory allocator that the StrBuilder API will use.
+ * Defaults to malloc() from stdlib.h
+ *
+ * @param mem_alloc_fn
+ */
+void strbuilder_set_mem_allocator(void *(*mem_alloc_fn)(size_t));
+
+/**
+ * Sets the memory reallocator that the StrBuilder API will use.
+ * Defaults to realloc() from stdlib.h
+ *
+ * @param mem_realloc_fn
+ */
+void strbuilder_set_mem_reallocator(void *(*mem_realloc_fn)(void *, size_t));
+
+/**
+ * Sets the memory deallocator that the StrBuilder API will use.
+ * Defaults to free() from stdlib.h
+ *
+ * @param mem_free_fn
+ */
+void strbuilder_set_mem_free(void (*mem_free_fn)(void *));
+
+/**
  * Allocates and initializes a new StrBuilder object using the default memory size.
  *
  * @param result Out: the StrBuilder handle.
