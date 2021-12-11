@@ -1,5 +1,11 @@
 # StrBuilder
-A string builder library for C. This API is quite memory expensive right now, I will try to optimize it.
+A string builder library for C.
+
+## TODO:
+- [x] Allow custom memory allocators (malloc, realloc, free).
+- [x] to_uppercase & to_lowercase functions.
+- [ ] substr function.
+- [ ] replace_str function.
 
 ## Usage
 First, copy `strbuilder.h` and `strbuilder.c` to your project directory and then `#include "strbuilder.h"` it.
