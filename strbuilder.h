@@ -345,4 +345,12 @@ StrBuilderErr strbuilder_trim(StrBuilder *sb);
  */
 StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times);
 
+/**
+ * Prints debug info about the given StrBuilder object.
+ * Only available when DEBUG symbol is defined at compile time.
+ *
+ * @param sb The StrBuilder handle.
+ */
+void strbuilder_print_debug_info(const StrBuilder *sb);
+
 #endif // STRBUILDER_STRBUILDER_H

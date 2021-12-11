@@ -401,3 +401,25 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
 
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
+
+void strbuilder_print_debug_info(const StrBuilder *sb)
+{
+#ifdef DEBUG
+    printf("StrBuilder@%p {\n"
+           "    length             : %zu\n"
+           "    allocated memory   : %zu bytes\n"
+           "    unused memory      : %zu bytes (%zu%%)\n"
+           "    last error code    : %d\n"
+           "    last error message : %s\n"
+           "    string             : \"",
+           sb,
+           sb->len,
+           sb->size,
+           sb->size - sb->len,
+           100 - (sb->len * 100 / sb->size),
+           sb->err,
+           strbuilder_get_error_msg(sb));
+    fwrite(sb->str, sizeof(char), sb->len, stdout);
+    printf("\"\n}\n");
+#endif
+}
