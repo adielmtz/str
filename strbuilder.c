@@ -332,6 +332,29 @@ int strbuilder_replace_c(StrBuilder *sb, char search, char replace)
     return n;
 }
 
+static void strbuilder_case_convert(StrBuilder *sb, int (*convert)(int))
+{
+    if (sb->len > 0) {
+        unsigned char *c = (unsigned char *) sb->str;
+        unsigned char *e = c + sb->len;
+
+        while (c < e) {
+            *c = convert(*c);
+            c++;
+        }
+    }
+}
+
+void strbuilder_to_uppercase(StrBuilder *sb)
+{
+    strbuilder_case_convert(sb, toupper);
+}
+
+void strbuilder_to_lowercase(StrBuilder *sb)
+{
+    strbuilder_case_convert(sb, tolower);
+}
+
 StrBuilderErr strbuilder_trim(StrBuilder *sb)
 {
     char *start = sb->str;

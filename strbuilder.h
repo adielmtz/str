@@ -311,6 +311,20 @@ StrBuilderErr strbuilder_append_d(StrBuilder *sb, double value);
 int strbuilder_replace_c(StrBuilder *sb, char search, char replace);
 
 /**
+ * Converts the string to uppercase.
+ *
+ * @param sb The StrBuilder handle.
+ */
+void strbuilder_to_uppercase(StrBuilder *sb);
+
+/**
+ * Converts the string to lowercase.
+ *
+ * @param sb The StrBuilder handle.
+ */
+void strbuilder_to_lowercase(StrBuilder *sb);
+
+/**
  * Strip whitespace from the beginning and end of the StrBuilder.
  *
  * @param sb The StrBuilder handle.
