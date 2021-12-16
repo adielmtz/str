@@ -80,16 +80,6 @@ void strbuilder_free(StrBuilder *sb);
 StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result);
 
 /**
- * Returns a pointer to a char array that contains the null-terminated string.
- * The caller must free the pointer afterwards.
- *
- * @param sb The StrBuilder handle.
- *
- * @return The NULL-terminated string pointer.
- */
-char *strbuilder_c_string(const StrBuilder *sb);
-
-/**
  * Gets the internal string pointer used by the StrBuilder.
  * The caller must not free or reallocate this value and it should be treated as read-only memory.
  *
@@ -305,24 +295,29 @@ StrBuilderErr strbuilder_append_d(StrBuilder *sb, double value);
  * @param sb The StrBuilder handle.
  * @param search The character to search.
  * @param replace The character to replace with.
+ * @param count If given, the function will set the number of replacements made.
  *
- * @return The number of replacements made.
+ * @return
  */
-int strbuilder_replace_c(StrBuilder *sb, char search, char replace);
+StrBuilderErr strbuilder_replace_c(StrBuilder *sb, char search, char replace, int *count);
 
 /**
  * Converts the string to uppercase.
  *
  * @param sb The StrBuilder handle.
+ *
+ * @return STRBUILDER_ERROR_NONE on success.
  */
-void strbuilder_to_uppercase(StrBuilder *sb);
+StrBuilderErr strbuilder_to_uppercase(StrBuilder *sb);
 
 /**
  * Converts the string to lowercase.
  *
  * @param sb The StrBuilder handle.
+ *
+ * @return STRBUILDER_ERROR_NONE on success.
  */
-void strbuilder_to_lowercase(StrBuilder *sb);
+StrBuilderErr strbuilder_to_lowercase(StrBuilder *sb);
 
 /**
  * Strip whitespace from the beginning and end of the StrBuilder.

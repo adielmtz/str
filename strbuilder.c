@@ -1,5 +1,6 @@
 #include "strbuilder.h"
 
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -14,7 +15,11 @@
 #define CASE_RETURN_ENUM_STR(val) case val: return #val
 
 #ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#   define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#   define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
 #define SET_ERROR_RETURN(sb, value) do { \
@@ -22,16 +27,10 @@
     return (value);                      \
 } while (0)
 
-#define GROW_STR(sb, requiredSize) do {                              \
-    if ((requiredSize) > (sb)->size) {                               \
-        size_t newSize = (sb)->size * 2;                             \
-        if ((requiredSize) > newSize) {                              \
-            newSize = (requiredSize);                                \
-        }                                                            \
-        if (!strbuilder_reallocate_str((sb), newSize)) {             \
-            SET_ERROR_RETURN(sb, STRBUILDER_ERROR_MEM_ALLOC_FAILED); \
-        }                                                            \
-    }                                                                \
+#define MEMBLOCK_COPY_OR_EXPAND(sb, requiredSize) do {                             \
+    if (!strbuilder_reallocate_refcounted_memblock((sb), (requiredSize), false)) { \
+        SET_ERROR_RETURN((sb), STRBUILDER_ERROR_MEM_ALLOC_FAILED);                 \
+    }                                                                              \
 } while (0)
 
 static void *(*mem_allocate)(size_t) = malloc;
@@ -40,28 +39,82 @@ static void *(*mem_reallocate)(void *, size_t) = realloc;
 
 static void (*mem_free)(void *) = free;
 
+struct MemBlock
+{
+    int64_t refcount;
+    size_t size;
+    char mem[];
+};
+
 struct StrBuilder
 {
     StrBuilderErr err;
-    char *str;
-    size_t size;
     size_t len;
+    char *str;
+    struct MemBlock *block;
 };
 
-static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
+static bool strbuilder_memblock_copy(StrBuilder *sb, size_t blockSize)
 {
-    char *tmp = mem_reallocate(sb->str, sizeof(char) * newSize);
-    if (tmp != NULL) {
-        sb->str = tmp;
-        sb->size = newSize;
-        if (sb->len > newSize) {
-            sb->len = newSize;
-        }
+    struct MemBlock *block = mem_allocate(sizeof(struct MemBlock) + sizeof(char) * blockSize);
+    if (block != NULL) {
+        block->refcount = 1;
+        block->size = blockSize;
+        memcpy(block->mem, sb->str, MIN(blockSize, sb->len));
 
+        // Remove this reference
+        assert(sb->block->refcount > 1);
+        sb->block->refcount--;
+        sb->str = block->mem;
+        sb->block = block;
         return true;
     }
 
     return false;
+}
+
+static bool strbuilder_memblock_reallocate(StrBuilder *sb, size_t newSize)
+{
+    struct MemBlock *tmp = mem_reallocate(sb->block, sizeof(struct MemBlock) + sizeof(char) * newSize);
+    if (tmp != NULL) {
+        tmp->size = newSize;
+        sb->str = tmp->mem;
+        sb->block = tmp;
+        return true;
+    }
+
+    return false;
+}
+
+static bool strbuilder_reallocate_refcounted_memblock(StrBuilder *sb, size_t requiredSize, bool allow_shrink)
+{
+    size_t newSize = requiredSize;
+    if (requiredSize > sb->block->size) {
+        newSize = sb->block->size * 2;
+        if (requiredSize > newSize) {
+            newSize = requiredSize;
+        }
+    }
+
+    if (sb->block->refcount > 1) {
+        // This block is referenced by more than 1 instance of StrBuilder.
+        // We need to create a copy of it and use it for this particular StrBuilder object.
+        if (!strbuilder_memblock_copy(sb, newSize)) {
+            return false;
+        }
+    } else if (newSize > sb->block->size || allow_shrink) {
+        // This block has a refcount of 1, meaning that is not referenced anywhere else,
+        // so we can safely reallocate it without having to update its refcount.
+        if (!strbuilder_memblock_reallocate(sb, newSize)) {
+            return false;
+        }
+    }
+
+    if (sb->len > newSize) {
+        sb->len = newSize;
+    }
+
+    return true;
 }
 
 void strbuilder_set_mem_allocator(void *(*mem_alloc_fn)(size_t))
@@ -90,10 +143,14 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
     *result = NULL;
 
     if (sb != NULL) {
-        sb->str = mem_allocate(sizeof(char) * size);
-        if (sb->str != NULL) {
-            sb->size = size;
+        struct MemBlock *block = mem_allocate(sizeof(struct MemBlock) + sizeof(char) * size);
+
+        if (block != NULL) {
             sb->len = 0;
+            sb->str = block->mem;
+            sb->block = block;
+            block->size = size;
+            block->refcount = 1;
             *result = sb;
             SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
         } else {
@@ -107,35 +164,33 @@ StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
 void strbuilder_free(StrBuilder *sb)
 {
     if (sb != NULL) {
-        mem_free(sb->str);
+        sb->block->refcount--;
+        if (sb->block->refcount == 0) {
+            mem_free(sb->block);
+        }
+
         mem_free(sb);
     }
 }
 
 StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
 {
-    StrBuilder *copy;
-    StrBuilderErr err = strbuilder_create_sz(&copy, sb->len);
+    StrBuilder *copy = mem_allocate(sizeof(StrBuilder));
     *result = NULL;
 
-    if (err == STRBUILDER_ERROR_NONE) {
-        memcpy(copy->str, sb->str, sb->len);
+    if (copy != NULL) {
+        // Copy StrBuilder properties
+        copy->err = STRBUILDER_ERROR_NONE;
         copy->len = sb->len;
+        copy->str = sb->str;
+        copy->block = sb->block;
+        copy->block->refcount++;
+
         *result = copy;
+        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
     }
 
-    SET_ERROR_RETURN(sb, err);
-}
-
-char *strbuilder_c_string(const StrBuilder *sb)
-{
-    char *result = mem_allocate(sizeof(char) * sb->len + 1);
-    if (result != NULL) {
-        memcpy(result, sb->str, sb->len);
-        result[sb->len] = '\0';
-    }
-
-    return result;
+    return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
 }
 
 const char *strbuilder_get_str(const StrBuilder *sb)
@@ -166,10 +221,11 @@ size_t strbuilder_get_len(const StrBuilder *sb)
 
 StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
 {
-    GROW_STR(sb, len);
-    if (len > sb->len) {
+    size_t oldLen = sb->len;
+    MEMBLOCK_COPY_OR_EXPAND(sb, len);
+    if (len > oldLen) {
         char *dst = sb->str + sb->len;
-        memset(dst, '\0', len - sb->len);
+        memset(dst, '\0', len - oldLen);
     }
 
     sb->len = len;
@@ -178,12 +234,12 @@ StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
 
 size_t strbuilder_get_size(const StrBuilder *sb)
 {
-    return sb->size;
+    return sb->block->size;
 }
 
 StrBuilderErr strbuilder_set_size(StrBuilder *sb, size_t size)
 {
-    bool success = strbuilder_reallocate_str(sb, size);
+    bool success = strbuilder_reallocate_refcounted_memblock(sb, size, true);
     SET_ERROR_RETURN(sb, success ? STRBUILDER_ERROR_NONE : STRBUILDER_ERROR_MEM_ALLOC_FAILED);
 }
 
@@ -204,6 +260,8 @@ StrBuilderErr strbuilder_set_char(StrBuilder *sb, int index, char c)
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
     }
 
+    // We need to make a copy of the memblock if it has a refcount > 1
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len);
     sb->str[index] = c;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
@@ -274,8 +332,9 @@ StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
 
 StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c)
 {
-    GROW_STR(sb, sb->len + 1);
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len + 2);
     sb->str[sb->len] = c;
+    sb->str[sb->len + 1] = '\0';
     sb->len++;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
@@ -283,42 +342,44 @@ StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c)
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
 {
     size_t newLen = sb->len + len;
-    GROW_STR(sb, newLen);
+    MEMBLOCK_COPY_OR_EXPAND(sb, newLen + 1);
     char *dst = sb->str + sb->len;
     sb->len = newLen;
     memcpy(dst, str, len);
+    sb->str[sb->len] = '\0';
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 StrBuilderErr strbuilder_append_i(StrBuilder *sb, int64_t value)
 {
-    GROW_STR(sb, sb->len + UINT64_MAX_STRLEN);
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len + UINT64_MAX_STRLEN);
     char *ptr = sb->str + sb->len;
-    int count = snprintf(ptr, sb->size - sb->len, LONG_FMT, value);
+    int count = snprintf(ptr, sb->block->size - sb->len, LONG_FMT, value);
     sb->len += count;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 StrBuilderErr strbuilder_append_ui(StrBuilder *sb, uint64_t value)
 {
-    GROW_STR(sb, sb->len + UINT64_MAX_STRLEN);
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len + UINT64_MAX_STRLEN);
     char *ptr = sb->str + sb->len;
-    int count = snprintf(ptr, sb->size - sb->len, ULONG_FMT, value);
+    int count = snprintf(ptr, sb->block->size - sb->len, ULONG_FMT, value);
     sb->len += count;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 StrBuilderErr strbuilder_append_d(StrBuilder *sb, double value)
 {
-    GROW_STR(sb, sb->len + DOUBLE_MAX_STRLEN);
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len + DOUBLE_MAX_STRLEN);
     char *ptr = sb->str + sb->len;
-    int count = snprintf(ptr, sb->size - sb->len, "%f", value);
+    int count = snprintf(ptr, sb->block->size - sb->len, "%f", value);
     sb->len += count;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
-int strbuilder_replace_c(StrBuilder *sb, char search, char replace)
+StrBuilderErr strbuilder_replace_c(StrBuilder *sb, char search, char replace, int *count)
 {
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len);
     int n = 0;
     if (sb->len > 0) {
         char *ptr = sb->str;
@@ -329,7 +390,11 @@ int strbuilder_replace_c(StrBuilder *sb, char search, char replace)
         }
     }
 
-    return n;
+    if (count != NULL) {
+        *count = n;
+    }
+
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 static void strbuilder_case_convert(StrBuilder *sb, int (*convert)(int))
@@ -345,14 +410,18 @@ static void strbuilder_case_convert(StrBuilder *sb, int (*convert)(int))
     }
 }
 
-void strbuilder_to_uppercase(StrBuilder *sb)
+StrBuilderErr strbuilder_to_uppercase(StrBuilder *sb)
 {
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len);
     strbuilder_case_convert(sb, toupper);
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
-void strbuilder_to_lowercase(StrBuilder *sb)
+StrBuilderErr strbuilder_to_lowercase(StrBuilder *sb)
 {
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len);
     strbuilder_case_convert(sb, tolower);
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
 StrBuilderErr strbuilder_trim(StrBuilder *sb)
@@ -369,15 +438,27 @@ StrBuilderErr strbuilder_trim(StrBuilder *sb)
 
     if (start > end) {
         sb->len = 0; // "   " (3) -> trim -> "" (0)
+        sb->str[sb->len] = '\0';
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
     }
 
     size_t newLen = end - start + 1;
     if (start > sb->str) {
-        memmove(sb->str, start, newLen);
+        if (sb->block->refcount > 1) {
+            // This string has more references,
+            // so instead of reallocating, we can
+            // set the pointer to the start of the
+            // "trimmed" substring.
+            sb->str = start;
+        } else {
+            // In this case, the string has only 1 ref,
+            // we can modify its contents
+            memmove(sb->str, start, newLen);
+        }
     }
 
     sb->len = newLen;
+    sb->str[sb->len] = '\0';
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
@@ -389,7 +470,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
         sb->len = 0;
     } else if (times > 1) {
         size_t newLen = sb->len + (sb->len * (times - 1));
-        GROW_STR(sb, newLen);
+        MEMBLOCK_COPY_OR_EXPAND(sb, newLen);
         char *dst = sb->str + sb->len;
         while (--times) {
             memmove(dst, sb->str, sb->len);
@@ -399,6 +480,7 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
         sb->len = newLen;
     }
 
+    sb->str[sb->len] = '\0';
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
@@ -406,20 +488,27 @@ void strbuilder_print_debug_info(const StrBuilder *sb)
 {
 #ifdef DEBUG
     printf("StrBuilder@%p {\n"
-           "    length             : %zu\n"
-           "    allocated memory   : %zu bytes\n"
-           "    unused memory      : %zu bytes (%zu%%)\n"
            "    last error code    : %d\n"
            "    last error message : %s\n"
-           "    string             : \"",
+           "    length             : %zu\n"
+           "    string             : \"%*s\"\n"
+           "    MemBlock@%p {\n"
+           "        refcount         : %zu\n"
+           "        allocated memory : %zu bytes\n"
+           "        unused memory    : %zu bytes (%zu%%)\n"
+           "    }\n"
+           "}\n",
            sb,
-           sb->len,
-           sb->size,
-           sb->size - sb->len,
-           100 - (sb->len * 100 / sb->size),
            sb->err,
-           strbuilder_get_error_msg(sb));
-    fwrite(sb->str, sizeof(char), sb->len, stdout);
-    printf("\"\n}\n");
+           strbuilder_get_error_msg(sb),
+           sb->len,
+           (int) sb->len,
+           sb->str,
+           sb->block,
+           sb->block->refcount,
+           sb->block->size,
+           sb->block->size - sb->len,
+           100 - (sb->len * 100 / sb->block->size)
+    );
 #endif
 }
