@@ -10,11 +10,20 @@
 typedef enum StrBuilderErr
 {
     STRBUILDER_ERROR_NONE,
+    STRBUILDER_ERROR_NULL_POINTER,
     STRBUILDER_ERROR_MEM_ALLOC_FAILED,
     STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS,
 } StrBuilderErr;
 
-typedef struct StrBuilder StrBuilder;
+struct MemBlock;
+
+typedef struct StrBuilder
+{
+    StrBuilderErr err;
+    size_t len;
+    char *str;
+    struct MemBlock *block;
+} StrBuilder;
 
 /**
  * Sets the memory allocator that the StrBuilder API will use.
@@ -41,43 +50,43 @@ void strbuilder_set_mem_reallocator(void *(*mem_realloc_fn)(void *, size_t));
 void strbuilder_set_mem_free(void (*mem_free_fn)(void *));
 
 /**
- * Allocates and initializes a new StrBuilder object using the default memory size.
+ * Initializes a StrBuilder object using the default memory size.
  *
- * @param result Out: the StrBuilder handle.
+ * @param result The StrBuilder handle.
  *
  * @return STRBUILDER_ERROR_NONE on success. On failure, the result param
  * will be set to NULL.
  */
-StrBuilderErr strbuilder_create(StrBuilder **result);
+StrBuilderErr strbuilder_init(StrBuilder *sb);
 
 /**
- * Allocates and initializes a new StrBuilder object.
+ * Initializes a StrBuilder object.
  *
- * @param result Out: the StrBuilder handle.
+ * @param sb The StrBuilder handle.
  * @param size The amount of memory to allocate.
  *
- * @return STRBUILDER_ERROR_NONE on success. On failure, the result param
+ * @return STRBUILDER_ERROR_NONE on success. On failure, the sb param
  * will be set to NULL.
  */
-StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size);
+StrBuilderErr strbuilder_init_size(StrBuilder *sb, size_t size);
 
 /**
  * Releases the memory used by the StrBuilder and deallocates the handle.
  *
  * @param sb The StrBuilder handle to deallocate.
  */
-void strbuilder_free(StrBuilder *sb);
+void strbuilder_finalize(StrBuilder *sb);
 
 /**
  * Copies the string into a new StrBuilder object.
  *
  * @param sb The StrBuilder handle to copy from.
- * @param result Out: the new StrBuilder handle.
+ * @param result The result StrBuilder handle.
  *
  * @return STRBUILDER_ERROR_NONE on success. On failure, the result param
  * will be set to NULL.
  */
-StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result);
+StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder *result);
 
 /**
  * Gets the internal string pointer used by the StrBuilder.

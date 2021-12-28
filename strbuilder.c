@@ -46,14 +46,6 @@ struct MemBlock
     char mem[];
 };
 
-struct StrBuilder
-{
-    StrBuilderErr err;
-    size_t len;
-    char *str;
-    struct MemBlock *block;
-};
-
 static bool strbuilder_memblock_copy(StrBuilder *sb, size_t blockSize)
 {
     struct MemBlock *block = mem_allocate(sizeof(struct MemBlock) + sizeof(char) * blockSize);
@@ -132,65 +124,55 @@ void strbuilder_set_mem_free(void (*mem_free_fn)(void *))
     mem_free = mem_free_fn;
 }
 
-StrBuilderErr strbuilder_create(StrBuilder **result)
+StrBuilderErr strbuilder_init(StrBuilder *sb)
 {
-    return strbuilder_create_sz(result, STRBUILDER_DEFAULT_SIZE);
+    return strbuilder_init_size(sb, STRBUILDER_DEFAULT_SIZE);
 }
 
-StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
+StrBuilderErr strbuilder_init_size(StrBuilder *sb, size_t size)
 {
-    StrBuilder *sb = mem_allocate(sizeof(StrBuilder));
-    *result = NULL;
+    StrBuilderErr retErr = STRBUILDER_ERROR_MEM_ALLOC_FAILED;
+    struct MemBlock *block = mem_allocate(sizeof(struct MemBlock) + sizeof(char) * size);
+    if (block != NULL) {
+        sb->len = 0;
+        sb->str = block->mem;
+        sb->block = block;
 
-    if (sb != NULL) {
-        struct MemBlock *block = mem_allocate(sizeof(struct MemBlock) + sizeof(char) * size);
-
-        if (block != NULL) {
-            sb->len = 0;
-            sb->str = block->mem;
-            sb->block = block;
-            block->size = size;
-            block->refcount = 1;
-            *result = sb;
-            SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
-        } else {
-            mem_free(sb);
-        }
+        block->size = size;
+        block->refcount = 1;
+        retErr = STRBUILDER_ERROR_NONE;
     }
 
-    return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
+    SET_ERROR_RETURN(sb, retErr);
 }
 
-void strbuilder_free(StrBuilder *sb)
+void strbuilder_finalize(StrBuilder *sb)
 {
-    if (sb != NULL) {
+    if (sb != NULL && sb->block != NULL) {
         sb->block->refcount--;
         if (sb->block->refcount == 0) {
             mem_free(sb->block);
         }
 
-        mem_free(sb);
+        sb->err = STRBUILDER_ERROR_NONE;
+        sb->len = 0;
+        sb->str = NULL;
+        sb->block = NULL;
     }
 }
 
-StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
+StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder *result)
 {
-    StrBuilder *copy = mem_allocate(sizeof(StrBuilder));
-    *result = NULL;
-
-    if (copy != NULL) {
-        // Copy StrBuilder properties
-        copy->err = STRBUILDER_ERROR_NONE;
-        copy->len = sb->len;
-        copy->str = sb->str;
-        copy->block = sb->block;
-        copy->block->refcount++;
-
-        *result = copy;
+    if (result != NULL) {
+        result->err = STRBUILDER_ERROR_NONE;
+        result->len = sb->len;
+        result->str = sb->str;
+        result->block = sb->block;
+        result->block->refcount++;
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
     }
 
-    return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NULL_POINTER);
 }
 
 const char *strbuilder_get_str(const StrBuilder *sb)
@@ -225,7 +207,7 @@ StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
     MEMBLOCK_COPY_OR_EXPAND(sb, len);
     if (len > oldLen) {
         char *dst = sb->str + sb->len;
-        memset(dst, '\0', len - oldLen);
+        memset(dst, 0, len - oldLen);
     }
 
     sb->len = len;
@@ -260,7 +242,6 @@ StrBuilderErr strbuilder_set_char(StrBuilder *sb, int index, char c)
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS);
     }
 
-    // We need to make a copy of the memblock if it has a refcount > 1
     MEMBLOCK_COPY_OR_EXPAND(sb, sb->len);
     sb->str[index] = c;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
@@ -332,9 +313,8 @@ StrBuilderErr strbuilder_append(StrBuilder *sb, const StrBuilder *other)
 
 StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c)
 {
-    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len + 2);
+    MEMBLOCK_COPY_OR_EXPAND(sb, sb->len + 1);
     sb->str[sb->len] = c;
-    sb->str[sb->len + 1] = '\0';
     sb->len++;
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
@@ -342,11 +322,10 @@ StrBuilderErr strbuilder_append_c(StrBuilder *sb, char c)
 StrBuilderErr strbuilder_append_str(StrBuilder *sb, const char *str, size_t len)
 {
     size_t newLen = sb->len + len;
-    MEMBLOCK_COPY_OR_EXPAND(sb, newLen + 1);
+    MEMBLOCK_COPY_OR_EXPAND(sb, newLen);
     char *dst = sb->str + sb->len;
     sb->len = newLen;
     memcpy(dst, str, len);
-    sb->str[sb->len] = '\0';
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
@@ -382,10 +361,11 @@ StrBuilderErr strbuilder_replace_c(StrBuilder *sb, char search, char replace, in
     MEMBLOCK_COPY_OR_EXPAND(sb, sb->len);
     int n = 0;
     if (sb->len > 0) {
-        char *ptr = sb->str;
+        char *chr = sb->str;
         char *end = sb->str + sb->len;
-        while ((ptr = memchr(ptr, search, end - ptr)) != NULL) {
-            *ptr++ = replace;
+        while ((chr = memchr(chr, search, end - chr)) != NULL) {
+            *chr = replace;
+            chr++;
             n++;
         }
     }
@@ -438,7 +418,6 @@ StrBuilderErr strbuilder_trim(StrBuilder *sb)
 
     if (start > end) {
         sb->len = 0; // "   " (3) -> trim -> "" (0)
-        sb->str[sb->len] = '\0';
         SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
     }
 
@@ -458,7 +437,6 @@ StrBuilderErr strbuilder_trim(StrBuilder *sb)
     }
 
     sb->len = newLen;
-    sb->str[sb->len] = '\0';
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
@@ -480,7 +458,6 @@ StrBuilderErr strbuilder_repeat(StrBuilder *sb, int times)
         sb->len = newLen;
     }
 
-    sb->str[sb->len] = '\0';
     SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
 }
 
@@ -491,11 +468,12 @@ void strbuilder_print_debug_info(const StrBuilder *sb)
            "    last error code    : %d\n"
            "    last error message : %s\n"
            "    length             : %zu\n"
-           "    string             : \"%*s\"\n"
+           "    string             : \"%.*s\"\n"
            "    MemBlock@%p {\n"
            "        refcount         : %zu\n"
            "        allocated memory : %zu bytes\n"
            "        unused memory    : %zu bytes (%zu%%)\n"
+           "        ptr diff         : +%zu\n"
            "    }\n"
            "}\n",
            sb,
@@ -508,7 +486,8 @@ void strbuilder_print_debug_info(const StrBuilder *sb)
            sb->block->refcount,
            sb->block->size,
            sb->block->size - sb->len,
-           100 - (sb->len * 100 / sb->block->size)
+           100 - (sb->len * 100 / sb->block->size),
+           sb->str - sb->block->mem
     );
 #endif
 }
