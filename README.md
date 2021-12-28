@@ -7,6 +7,58 @@ A string builder library for C.
 - [ ] substr function.
 - [ ] replace_str function.
 
+## Reference counting
+This branch is experimenting with memory allocation & management using reference counting.
+Suppose you have an StrBuilder object which contains a string about a movie. Now,
+you want to extract the movie's title (substring). Normally the API would allocate more memory
+and then copy the substring over:
+```text
+== Without reference counting ==
+
+ StrBuilder info (len=66)
+/
+|------------------------------------------------------------------|
+|The first movie of "Pirates of the Caribbean" was released on 2003|
+|------------------------------------------------------------------|
+
+ StrBuilder title (len=24)
+/
+|------------------------|
+|Pirates of the Caribbean| <-- New memory allocation
+|------------------------|
+```
+
+```text
+== With reference counting ==
+
+ StrBuilder info (len=66)
+/
+|--------------------|------------------------|----------------------|
+|The first movie of "|Pirates of the Caribbean|" was released on 2003| <-- Same memory
+|--------------------|------------------------|----------------------|     refcount=2
+                     \
+                      StrBuilder title (len=24)
+```
+
+Only when you need to modify a reference counted string is when the API performs a new memory allocation
+and copies the contents of the string:
+
+```text
+== Append the release year to the movie's title ==
+
+ StrBuilder info (len=66)
+/
+|------------------------------------------------------------------|
+|The first movie of "Pirates of the Caribbean" was released on 2003| <-- "title" reference is removed
+|------------------------------------------------------------------|     refcount=1
+
+ StrBuilder title (len=31)
+/
+|-------------------------------|
+|Pirates of the Caribbean (2003)| <-- New memory allocation
+|-------------------------------|     refcount=1
+```
+
 ## Usage
 First, copy `strbuilder.h` and `strbuilder.c` to your project directory and then `#include "strbuilder.h"` it.
 
