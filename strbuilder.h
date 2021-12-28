@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define STRBUILDER_DEFAULT_SIZE 16
+#define STRBUILDER_DEFAULT_SIZE 32
 
 typedef enum StrBuilderErr
 {

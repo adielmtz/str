@@ -31,7 +31,8 @@ Normally the API would allocate more memory and then copy the substring over:
 |Pirates of the Caribbean| <-- New memory allocation
 |------------------------|
 ```
-
+With reference counting, the "title" object does not require allocating memory right now, so
+the API will simply add a new reference:
 ```text
 == With reference counting ==
 
@@ -112,7 +113,8 @@ int main()
         strbuilder_append_c(&sb, '\0');
         
         // Use the string
-        printf("Value: \"%s\"\n", sb.str);
+        const char *str = strbuilder_get_str(&sb);
+        printf("Value: \"%s\"\n", str);
         
         // Finalize
         strbuilder_finalize(&sb);
