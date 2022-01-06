@@ -1,5 +1,6 @@
 #include "strbuilder.h"
 
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -15,6 +16,10 @@
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
 #define SET_ERROR_RETURN(sb, value) do { \
@@ -39,14 +44,6 @@ static void *(*mem_allocate)(size_t) = malloc;
 static void *(*mem_reallocate)(void *, size_t) = realloc;
 
 static void (*mem_free)(void *) = free;
-
-struct StrBuilder
-{
-    StrBuilderErr err;
-    char *str;
-    size_t size;
-    size_t len;
-};
 
 static bool strbuilder_reallocate_str(StrBuilder *sb, size_t newSize)
 {
@@ -79,63 +76,43 @@ void strbuilder_set_mem_free(void (*mem_free_fn)(void *))
     mem_free = mem_free_fn;
 }
 
-StrBuilderErr strbuilder_create(StrBuilder **result)
+StrBuilderErr strbuilder_init(StrBuilder *sb)
 {
-    return strbuilder_create_sz(result, STRBUILDER_DEFAULT_SIZE);
+    return strbuilder_init_sz(sb, STRBUILDER_DEFAULT_SIZE);
 }
 
-StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size)
+StrBuilderErr strbuilder_init_sz(StrBuilder *sb, size_t size)
 {
-    StrBuilder *sb = mem_allocate(sizeof(StrBuilder));
-    *result = NULL;
-
-    if (sb != NULL) {
-        sb->str = mem_allocate(sizeof(char) * size);
-        if (sb->str != NULL) {
-            sb->size = size;
-            sb->len = 0;
-            *result = sb;
-            SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
-        } else {
-            mem_free(sb);
-        }
+    sb->str = mem_allocate(sizeof(char) * size);
+    if (sb->str != NULL) {
+        sb->size = size;
+        sb->len = 0;
+        SET_ERROR_RETURN(sb, STRBUILDER_ERROR_NONE);
     }
 
-    return STRBUILDER_ERROR_MEM_ALLOC_FAILED;
+    SET_ERROR_RETURN(sb, STRBUILDER_ERROR_MEM_ALLOC_FAILED);
 }
 
-void strbuilder_free(StrBuilder *sb)
+void strbuilder_finalize(StrBuilder *sb)
 {
     if (sb != NULL) {
         mem_free(sb->str);
-        mem_free(sb);
+        sb->str = NULL;
+        sb->err = STRBUILDER_ERROR_NONE;
+        sb->size = 0;
+        sb->len = 0;
     }
 }
 
-StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result)
+StrBuilderErr strbuilder_copy(StrBuilder *src, StrBuilder *dest)
 {
-    StrBuilder *copy;
-    StrBuilderErr err = strbuilder_create_sz(&copy, sb->len);
-    *result = NULL;
-
+    StrBuilderErr err = strbuilder_init_sz(dest, MAX(src->len, STRBUILDER_DEFAULT_SIZE));
     if (err == STRBUILDER_ERROR_NONE) {
-        memcpy(copy->str, sb->str, sb->len);
-        copy->len = sb->len;
-        *result = copy;
+        memcpy(dest->str, src->str, src->len);
+        dest->len = src->len;
     }
 
-    SET_ERROR_RETURN(sb, err);
-}
-
-char *strbuilder_c_string(const StrBuilder *sb)
-{
-    char *result = mem_allocate(sizeof(char) * sb->len + 1);
-    if (result != NULL) {
-        memcpy(result, sb->str, sb->len);
-        result[sb->len] = '\0';
-    }
-
-    return result;
+    SET_ERROR_RETURN(src, err);
 }
 
 const char *strbuilder_get_str(const StrBuilder *sb)
@@ -169,7 +146,7 @@ StrBuilderErr strbuilder_set_len(StrBuilder *sb, size_t len)
     GROW_STR(sb, len);
     if (len > sb->len) {
         char *dst = sb->str + sb->len;
-        memset(dst, '\0', len - sb->len);
+        memset(dst, 0, len - sb->len);
     }
 
     sb->len = len;
@@ -411,15 +388,16 @@ void strbuilder_print_debug_info(const StrBuilder *sb)
            "    unused memory      : %zu bytes (%zu%%)\n"
            "    last error code    : %d\n"
            "    last error message : %s\n"
-           "    string             : \"",
+           "    string             : \"%.*s\"\n"
+           "}",
            sb,
            sb->len,
            sb->size,
            sb->size - sb->len,
            100 - (sb->len * 100 / sb->size),
            sb->err,
-           strbuilder_get_error_msg(sb));
-    fwrite(sb->str, sizeof(char), sb->len, stdout);
-    printf("\"\n}\n");
+           strbuilder_get_error_msg(sb),
+           (int) sb->len,
+           sb->str);
 #endif
 }

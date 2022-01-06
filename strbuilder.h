@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define STRBUILDER_DEFAULT_SIZE 16
+#define STRBUILDER_DEFAULT_SIZE 32
 
 typedef enum StrBuilderErr
 {
@@ -14,7 +14,13 @@ typedef enum StrBuilderErr
     STRBUILDER_ERROR_INDEX_OUT_OF_BOUNDS,
 } StrBuilderErr;
 
-typedef struct StrBuilder StrBuilder;
+typedef struct StrBuilder
+{
+    StrBuilderErr err;
+    char *str;
+    size_t size;
+    size_t len;
+} StrBuilder;
 
 /**
  * Sets the memory allocator that the StrBuilder API will use.
@@ -43,51 +49,38 @@ void strbuilder_set_mem_free(void (*mem_free_fn)(void *));
 /**
  * Allocates and initializes a new StrBuilder object using the default memory size.
  *
- * @param result Out: the StrBuilder handle.
+ * @param sb The StrBuilder handle.
  *
- * @return STRBUILDER_ERROR_NONE on success. On failure, the result param
- * will be set to NULL.
+ * @return STRBUILDER_ERROR_NONE on success.
  */
-StrBuilderErr strbuilder_create(StrBuilder **result);
+StrBuilderErr strbuilder_init(StrBuilder *sb);
 
 /**
  * Allocates and initializes a new StrBuilder object.
  *
- * @param result Out: the StrBuilder handle.
+ * @param sb The StrBuilder handle.
  * @param size The amount of memory to allocate.
  *
- * @return STRBUILDER_ERROR_NONE on success. On failure, the result param
- * will be set to NULL.
+ * @return STRBUILDER_ERROR_NONE on success.
  */
-StrBuilderErr strbuilder_create_sz(StrBuilder **result, size_t size);
+StrBuilderErr strbuilder_init_sz(StrBuilder *sb, size_t size);
 
 /**
  * Releases the memory used by the StrBuilder and deallocates the handle.
  *
  * @param sb The StrBuilder handle to deallocate.
  */
-void strbuilder_free(StrBuilder *sb);
+void strbuilder_finalize(StrBuilder *sb);
 
 /**
  * Copies the string into a new StrBuilder object.
  *
- * @param sb The StrBuilder handle to copy from.
- * @param result Out: the new StrBuilder handle.
+ * @param src The StrBuilder handle to copy src.
+ * @param dest The dest StrBuilder handle.
  *
- * @return STRBUILDER_ERROR_NONE on success. On failure, the result param
- * will be set to NULL.
+ * @return STRBUILDER_ERROR_NONE on success..
  */
-StrBuilderErr strbuilder_copy(StrBuilder *sb, StrBuilder **result);
-
-/**
- * Returns a pointer to a char array that contains the null-terminated string.
- * The caller must free the pointer afterwards.
- *
- * @param sb The StrBuilder handle.
- *
- * @return The NULL-terminated string pointer.
- */
-char *strbuilder_c_string(const StrBuilder *sb);
+StrBuilderErr strbuilder_copy(StrBuilder *src, StrBuilder *dest);
 
 /**
  * Gets the internal string pointer used by the StrBuilder.
