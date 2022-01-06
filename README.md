@@ -1,37 +1,46 @@
 # StrBuilder
+
 A string builder library for C.
 
 ## TODO:
+
+- [x] Allow StrBuilder to be allocated on the stack.
 - [x] Allow custom memory allocators (malloc, realloc, free).
 - [x] to_uppercase & to_lowercase functions.
 - [ ] substr function.
 - [ ] replace_str function.
 
 ## Usage
-First, copy `strbuilder.h` and `strbuilder.c` to your project directory and then `#include "strbuilder.h"` it.
 
-### Allocation
-To allocate a StrBuilder object, you can use `strbuilder_create` or `strbuilder_create_sz` functions. After usage, you
-can use `strbuilder_free` to deallocate the StrBuilder object.
+Copy `strbuilder.h` and `strbuilder.c` to your project directory and then `#include` it:
 
 ```c
-StrBuilder *sb;
-
-// Allocate using the default memory size:
-if (strbuilder_create(&sb) == STRBUILDER_ERROR_NONE) {
-    // Success!
-}
-
-// Allocate using a custom memory size:
-if (strbuilder_create_sz(&sb, 1024) == STRBUILDER_ERROR_NONE) {
-    // Good to go!
-}
-
-// Free memory. It won't complain if you pass a NULL pointer~
-strbuilder_free(sb);
+#include "strbuilder.h"
 ```
 
-This snippet illustrates a simple usage:
+### Allocation
+
+Use the function `strbuilder_init` or `strbuilder_init_sz` to initialize an StrBuilder object. After you're done with
+your string, you can use `strbuilder_finalize` to deallocate any memory and resources used by the API.
+
+```c
+StrBuilder sb;
+
+// Allocate using the default memory size
+strbuilder_init(&sb);
+
+// Allocate using a custom memory size
+strbuilder_init_sz(&sb, 1024);
+
+if (strbuilder_get_err(&sb) == STRBUILDER_ERROR_NONE) {
+    // Success!
+    
+    // Free memory after you're done.
+    strbuilder_finalize(&sb);
+}
+```
+
+This snippet illustrates a basic example:
 
 ```c
 #include "strbuilder.h"
@@ -39,75 +48,87 @@ This snippet illustrates a simple usage:
 
 int main()
 {
-    StrBuilder *sb;
-    if (strbuilder_create(&sb) == STRBUILDER_ERROR_NONE) {
-        // Work with your StrBuilder object...
-        strbuilder_append_str(sb, "Hello world!", sizeof("Hello world!")-1);
-        // Free it!
-        strbuilder_free(sb);
-    } else {
-        printf("PANIK! Something went wrong!");
+    StrBuilder sb;
+    strbuilder_init(&sb);
+    if (strbuilder_get_err(&sb) != STRBUILDER_ERROR_NONE) {
+        // Get an error message if something failed
+        printf("PANIK! %s\n", strbuilder_get_error_msg(&sb));
+        return EXIT_FAILURE;
     }
     
-    return 0;
+    // Work with your StrBuilder object...
+    strbuilder_append_str(&sb, "Year: ", 6);
+    strbuilder_append_i(&sb, 2022);
+    
+    // Add NULL terminator
+    strbuilder_append_c(&sb, '\0');
+    
+    // Use the string
+    const char *str = strbuilder_get_str(&sb);
+    printf("Value: \"%s\"\n", str);
+    
+    // Finalize
+    strbuilder_finalize(&sb);
+    return EXIT_SUCCESS;
 }
 ```
 
 ### Get/Set the length of the string
-With `strbuilder_get_len` you can get the length of the string.
-With `strbuilder_set_len` you can set or truncate the length of the string.
-If the value is greater than the original length, then the "extra" space will be filled with NULL chars.
-If the value is less than the original length, then the string will be truncated.
+
+With `strbuilder_get_len` you can get the length of the string. With `strbuilder_set_len` you can set or truncate the
+length of the string. If the value is greater than the original length, then the "extra" space will be filled with NULL
+chars. If the value is less than the original length, then the string will be truncated.
 
 For instance, a StrBuilder object holding the string `Hello world!`:
+
 ```c
-size_t length = strbuilder_get_len(sb); // 12
-strbuilder_set_len(sb, 5); // Truncates to: "Hello"
-strbuilder_set_len(sb, 10); // Expands to: "Hello00000" (0 is the NULL char)
+// "Hello world!"
+size_t length = strbuilder_get_len(&sb); // length=12
+strbuilder_set_len(&sb, 5);              // Truncates to: "Hello"
+strbuilder_set_len(&sb, 10);             // Expands to:   "Hello00000" (0 is the NULL char)
 ```
 
 ### Concatenation
+
 You can concatenate strings using `strbuilder_append_*` functions:
 
 ```c
 // Concatenate a different StrBuilder object:
-strbuilder_append(sb1, sb2);
+strbuilder_append(&sb1, &sb2);
 
 // Concatenate a character:
-strbuilder_append_c(sb, 'C');
+strbuilder_append_c(&sb, 'C');
 
 // Concatenate a string:
 const char *text = "Hello world!";
-strbuilder_append_str(sb, text, strlen(text));
+strbuilder_append_str(&sb, text, strlen(text));
 
 // Concatenate an integer
-strbuilder_append_i(sb, 1024);
+strbuilder_append_i(&sb, 2022);
+strbuilder_append_i(&sb, -1234);
 
 // Concatenate an unsigned integer
-strbuilder_append_ui(sb, 1024u);
+strbuilder_append_ui(&sb, 4096);
+
+// Concatenate a float or double value
+strbuilder_append_d(&sb, 3.1416);
+strbuilder_append_d(&sb, -2.7182);
 ```
 
 This API is binary safe, so you can pass a string containing NULL chars without any issue:
 
 ```c
-strbuilder_append_c(sb, '\0'); // OK!
-strbuilder_append_str(sb, "Contains\0NULL\0chars!", 20); // Works as long as you know the length
+strbuilder_append_c(&sb, '\0'); // OK!
+strbuilder_append_str(&sb, "Contains\0NULL\0chars!", 20); // Works as long as you know the length
 ```
 
 ### Get the resulting string
-Use `strbuilder_c_string` to get a C-style string:
-```c
-char *str = strbuilder_c_string(sb);
-printf("My string is: %s\n", str);
-free(str); // Don't forget to free it after you're done with it!
-```
-This function allocates a new char* buffer and copies the string into it, appending a NULL-char at the end.
 
-Furthermore, you can use `strbuilder_get_str` to get the internal char pointer used by the object, avoiding an
-additional memory allocation:
+Use either the `str` property or `strbuilder_get_str` function to get the string pointer. This API uses the length
+property to keep track of the string in memory. Before you use it, you should append a NULL terminator.
+
 ```c
-const char *str = strbuilder_get_str(sb);
-printf("My string is: %s\n", str);
+strbuilder_append_c(&sb, '\0');            // Appending a NULL terminator
+const char *str = strbuilder_get_str(&sb); // Or sb.str
+printf("String: %s\n", str);
 ```
-Please note that this function does not guarantee that the string is NULL-terminated as it just returns the internal
-pointer used by the StrBuilder object; therefore you shouldn't try to free it or modify it yourself as it may cause trouble.
