@@ -423,3 +423,35 @@ void stringbuilder_trim(StringBuilder *sb)
         sb->str[newLen] = '\0';
     }
 }
+
+int stringbuilder_split(const StringBuilder *sb, StringBuilder *pieces, int32_t max_pieces, const char *separator, int32_t separator_len)
+{
+    int n = 0;
+    if (sb->len > 0 && max_pieces > 0) {
+        char *start = sb->str;
+        char *end = start + sb->len;
+        char *current = internal_string_pos(start, sb->len, separator, separator_len);
+
+        while (current != NULL && n + 1 < max_pieces) {
+            StringBuilder *p = &pieces[n];
+            int32_t len = (int32_t) (current - start);
+            stringbuilder_init_size(p, len + 1);
+            stringbuilder_append_string(p, start, len);
+
+            int32_t remaining = (int32_t) (end - current);
+            start = current + separator_len;
+            current = internal_string_pos(start, remaining, separator, separator_len);
+            n++;
+        }
+
+        // Split the remaining part of the string
+        if (start <= end && n < max_pieces) {
+            StringBuilder *p = &pieces[n++];
+            int32_t len = (int32_t) (end - start);
+            stringbuilder_init_size(p, len + 1);
+            stringbuilder_append_string(p, start, len);
+        }
+    }
+
+    return n;
+}

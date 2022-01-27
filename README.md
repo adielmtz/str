@@ -75,19 +75,85 @@ int main()
 }
 ```
 
+Using `stringbuilder_copy` allows you to create a copy of your string:
+
+```c
+StringBuilder src;
+stringbuilder_init(&src);
+stringbuilder_append_string(&src, "Copy me!", 8);
+
+StringBuilder dest;
+stringbuilder_copy(&src, &dest);
+
+// ...
+
+stringbuilder_finalize(&dest);
+```
+
 ### Get/Set the length of the string
 
 With `stringbuilder_get_len` you can get the length of the string. With `stringbuilder_set_len` you can set or truncate
 the length of the string. If the value is greater than the original length, then the "extra" space will be filled with
 NULL chars. If the value is less than the original length, then the string will be truncated.
 
-For instance, a StringBuilder object holding the string `Hello world!`:
+```c
+StringBuilder sb;
+stringbuilder_init(&sb);
+stringbuilder_append_string(&sb, "Hello world!", 12);
+
+int32_t length = stringbuilder_get_len(&sb); // length=12
+stringbuilder_set_len(&sb, 5);               // Truncates to: "Hello"
+stringbuilder_set_len(&sb, 10);              // Expands to:   "Hello00000" (0 is the NULL char)
+```
+
+### Get/Set the size of the string
+
+The size refers to the total amount of memory allocated for the actual string. This value is always larger than the
+length of the string: `size >= length + 1`.
+
+Reducing the memory to a value lower than `length`, will truncate the string to `size - 1`:
 
 ```c
-// "Hello world!"
-size_t length = stringbuilder_get_len(&sb); // length=12
-stringbuilder_set_len(&sb, 5);              // Truncates to: "Hello"
-stringbuilder_set_len(&sb, 10);             // Expands to:   "Hello00000" (0 is the NULL char)
+StringBuilder sb;
+stringbuilder_init_sz(&sb, 64);
+stringbuilder_append_string(&sb, "Watame is best sheep", 20);
+
+int32_t size = stringbuilder_get_size(&sb); // size=64
+stringbuilder_set_size(&sb, 4);             // Truncates the string (length=size - 1): "Wat"
+```
+
+### String comparison
+
+Using `stringbuilder_compare`:
+
+* Returns a negative integer if the first string is less than the second string.
+* Returns a positive integer if the first string is greater than the second string.
+* Returns zero if both strings are equal.
+
+```c
+StringBuilder a, b;
+stringbuilder_init(&a);
+stringbuilder_init(&b);
+
+stringbuilder_append_char(&a, 'A');
+stringbuilder_append_char(&b, 'B');
+
+int cmp = stringbuilder_compare(&a, &b); // -1 : A < B
+```
+
+Using `stringbuilder_equals`:
+
+* Returns true if both strings are equal.
+
+```c
+StringBuilder a, b;
+stringbuilder_init(&a);
+stringbuilder_init(&b);
+
+stringbuilder_append_char(&a, 'A');
+stringbuilder_append_char(&b, 'A');
+
+bool equal = stringbuilder_equals(&a, &b); // True
 ```
 
 ### Concatenation
@@ -125,6 +191,34 @@ This API is binary safe, you can append a string that contains NULL chars:
 ```c
 stringbuilder_append_char(&sb, '\0'); // OK!
 stringbuilder_append_string(&sb, "Contains\0NULL\0chars!", 20); // Works as long as you know the length
+```
+
+### Split
+With `stringbuilder_split` you can divide the string into many substrings using a separator:
+
+```c
+#define MAX_PIECES 3
+
+StringBuilder sb;
+stringbuilder_init(&sb);
+
+stringbuilder_append_string(&sb, "ABC,,DEF,,GHI", 13);
+
+StringBuilder pieces[MAX_PIECES];
+int count = stringbuilder_split(&sb, pieces, MAX_PIECES, ",,", 2);
+
+for (int i = 0; i < count; i++) {
+    const char *str = stringbuilder_get_str(&pieces[i]);
+    printf("Split: '%s'\n", str);
+    stringbuilder_finalize(&pieces[i]);
+}
+
+// == OUTPUT ==
+// Split: 'ABC'
+// Split: 'DEF'
+// Split: 'GHI'
+
+stringbuilder_finalize(&sb);
 ```
 
 ### Get the resulting string

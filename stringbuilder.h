@@ -328,4 +328,18 @@ StringBuilderError stringbuilder_repeat(StringBuilder *sb, int times);
  */
 void stringbuilder_trim(StringBuilder *sb);
 
+/**
+ * Splits the string into substrings using a separator.
+ *
+ * @param sb The StringBuilder handle.
+ * @param pieces The array of StringBuilder pieces.
+ * @param max_pieces The maximum number of pieces to split.
+ * @param separator The separator.
+ * @param separator_len The length of the separator.
+ *
+ * @return The number of pieces the string was divided into. This value must be less than or equal to
+ * max_pieces.
+ */
+int stringbuilder_split(const StringBuilder *sb, StringBuilder *pieces, int32_t max_pieces, const char *separator, int32_t separator_len);
+
 #endif // STRING_BUILDER_H
