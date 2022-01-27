@@ -52,7 +52,7 @@ void stringbuilder_set_memory_free(void (*free_fn)(void *))
 
 StringBuilderError stringbuilder_init(StringBuilder *sb)
 {
-    return stringbuilder_init_size(sb, STRING_BUILDER_MIN_SIZE);
+    return stringbuilder_init_size(sb, STRING_BUILDER_DEFAULT_INITIAL_SIZE);
 }
 
 StringBuilderError stringbuilder_init_size(StringBuilder *sb, int32_t size)
@@ -86,7 +86,7 @@ void stringbuilder_finalize(StringBuilder *sb)
 
 StringBuilderError stringbuilder_copy(StringBuilder *src, StringBuilder *dest)
 {
-    src->error = stringbuilder_init_size(dest, max(src->len + 1, STRING_BUILDER_MIN_SIZE));
+    src->error = stringbuilder_init_size(dest, src->len + 1);
     if (src->error == STRING_BUILDER_ERROR_NONE) {
         memcpy(dest->str, src->str, src->len);
         dest->len = src->len;
@@ -177,38 +177,52 @@ bool stringbuilder_equals(const StringBuilder *a, const StringBuilder *b)
     return a == b || a->len == b->len && memcmp(a->str, b->str, a->len) == 0;
 }
 
-bool stringbuilder_contains(const StringBuilder *sb, const char *needle, int32_t needle_len)
+static char *internal_string_pos(char *str, int32_t str_len, const char *needle, int32_t needle_len)
 {
     // All strings contain an empty string ""
     if (needle_len == 0) {
-        return true;
+        return str;
     }
 
-    // Lookup for a single character in the string
-    if (needle_len == 1) {
-        return sb->len > 0 && memchr(sb->str, *needle, sb->len) != NULL;
+    if (str_len > 0) {
+        // Lookup for a single character in the string
+        if (needle_len == 1) {
+            return memchr(str, *needle, str_len);
+        }
+
+        // Lookup for a word in the string
+        if (needle_len > 1 && needle_len <= str_len) {
+            char *curr = str;
+            const char *end = str + str_len;
+
+            do {
+                curr = memchr(curr, *needle, end - curr);
+                if (curr == NULL) {
+                    break;
+                }
+
+
+                if (memcmp(curr + 1, needle + 1, needle_len - 1) == 0) {
+                    return curr;
+                }
+
+                curr += needle_len;
+            } while (curr + needle_len < end);
+        }
     }
 
-    // Lookup for a word in the string
-    if (needle_len > 1 && needle_len <= sb->len) {
-        char *curr = sb->str;
-        char *end = sb->str + sb->len;
+    return NULL;
+}
 
-        do {
-            curr = memchr(curr, *needle, end - curr);
-            if (curr == NULL) {
-                break;
-            }
+int32_t stringbuilder_index_of(const StringBuilder *sb, const char *needle, int32_t needle_len)
+{
+    const char *pos = internal_string_pos(sb->str, sb->len, needle, needle_len);
+    return pos == NULL ? -1 : (int32_t) (pos - sb->str);
+}
 
-            if (memcmp(curr + 1, needle + 1, needle_len - 1) == 0) {
-                return true;
-            }
-
-            curr += needle_len;
-        } while (curr + needle_len < end);
-    }
-
-    return false;
+bool stringbuilder_contains(const StringBuilder *sb, const char *needle, int32_t needle_len)
+{
+    return internal_string_pos(sb->str, sb->len, needle, needle_len) != NULL;
 }
 
 bool stringbuilder_starts_with(const StringBuilder *sb, const char *prefix, int32_t prefix_len)
@@ -311,7 +325,7 @@ static void internal_case_convert(StringBuilder *sb, int (*convert)(int))
 {
     if (sb->len > 0) {
         char *c = sb->str;
-        char *e = c + sb->len;
+        const char *e = c + sb->len;
 
         while (c < e) {
             *c = (char) convert(*c);
@@ -335,7 +349,7 @@ int stringbuilder_replace_char(StringBuilder *sb, char search, char replace)
     int n = 0;
     if (sb->len > 0) {
         char *c = sb->str;
-        char *e = c + sb->len;
+        const char *e = c + sb->len;
         while ((c = memchr(c, search, e - c)) != NULL) {
             *c = replace;
             c++;
@@ -378,8 +392,8 @@ StringBuilderError stringbuilder_repeat(StringBuilder *sb, int times)
 void stringbuilder_trim(StringBuilder *sb)
 {
     if (sb->len > 0) {
-        char *c = sb->str;
-        char *e = c + sb->len;
+        const char *c = sb->str;
+        const char *e = c + sb->len;
 
         // Trim the beginning of the string
         while (c < e && isspace(*c)) {

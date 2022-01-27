@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define STRING_BUILDER_MIN_SIZE 16
+#define STRING_BUILDER_DEFAULT_INITIAL_SIZE 16
 
 typedef enum StringBuilderError
 {
@@ -163,6 +163,17 @@ int stringbuilder_compare(const StringBuilder *a, const StringBuilder *b);
  * @param b The second StringBuilder handle.
  */
 bool stringbuilder_equals(const StringBuilder *a, const StringBuilder *b);
+
+/**
+ * Find the position of the first occurrence of a substring in a string.
+ *
+ * @param sb The StringBuilder handle.
+ * @param needle The substring to search for.
+ * @param needle_len The length of the substring.
+ *
+ * @return The zero-based index in the string or -1 if the substring was not found.
+ */
+int32_t stringbuilder_index_of(const StringBuilder *sb, const char *needle, int32_t needle_len);
 
 /**
  * Returns true if the string contains the given substring.

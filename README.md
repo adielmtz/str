@@ -7,10 +7,10 @@ A string builder library for C.
 - [x] Append NULL terminator automatically.
 - [x] Allow StringBuilder to be allocated on the stack.
 - [x] Allow custom memory allocators (malloc, realloc, free).
-- [x] to_uppercase & to_lowercase functions.
+- [x] stringbuilder_to_uppercase & stringbuilder_to_lowercase functions.
 - [ ] substr function.
 - [ ] replace_string function.
-- [ ] indexof or equivalent to strpos.
+- [x] stringbuilder_index_of function.
 
 ## Usage
 
@@ -120,7 +120,7 @@ stringbuilder_append_float(&sb, -2.7182);
 stringbuilder_append_format(&sb, "Formatted %s are the %s!", "strings", "best");
 ```
 
-This API is binary safe, so you can pass a string containing NULL chars without any issue:
+This API is binary safe, you can append a string that contains NULL chars:
 
 ```c
 stringbuilder_append_char(&sb, '\0'); // OK!
