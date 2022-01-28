@@ -1,6 +1,7 @@
 #ifndef STRING_BUILDER_H
 #define STRING_BUILDER_H
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
