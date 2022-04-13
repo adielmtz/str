@@ -16,8 +16,8 @@ typedef enum StringBuilderError
 
 typedef struct StringBuilder
 {
-    char *str;
-    int32_t len;
+    char *value;
+    int32_t length;
     int32_t size;
     StringBuilderError error;
 } StringBuilder;
@@ -316,7 +316,7 @@ int stringbuilder_replace_char(StringBuilder *sb, char search, char replace);
  * @param sb The StringBuilder handle.
  * @param times The number of times that the string should be repeated.
  * This value has to be equal or greater than zero. If the number of times
- * is 0, the string will be truncated to an empty string (len=0).
+ * is 0, the string will be truncated to an empty string (length=0).
  *
  * @return STRING_BUILDER_ERROR_NONE on success.
  */

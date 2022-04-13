@@ -63,11 +63,11 @@ int main()
     stringbuilder_append_int(&sb, 2022);
     
     // Use the string
-    const char *str = stringbuilder_get_str(&sb);
+    const char *value = stringbuilder_get_str(&sb);
     
     // Ready to use, as the API automatically appends
     // a NULL terminator.
-    printf("Value: \"%s\"\n", str);
+    printf("Value: \"%s\"\n", value);
     
     // Finalize
     stringbuilder_finalize(&sb);
@@ -208,8 +208,8 @@ StringBuilder pieces[MAX_PIECES];
 int count = stringbuilder_split(&sb, pieces, MAX_PIECES, ",,", 2);
 
 for (int i = 0; i < count; i++) {
-    const char *str = stringbuilder_get_str(&pieces[i]);
-    printf("Split: '%s'\n", str);
+    const char *value = stringbuilder_get_str(&pieces[i]);
+    printf("Split: '%s'\n", value);
     stringbuilder_finalize(&pieces[i]);
 }
 
@@ -223,10 +223,10 @@ stringbuilder_finalize(&sb);
 
 ### Get the resulting string
 
-Use either the `str` property or `stringbuilder_get_str` function to get the string pointer. This API automatically
+Use either the `value` property or `stringbuilder_get_str` function to get the string pointer. This API automatically
 appends a NULL terminator to your string, so you can use it right away!
 
 ```c
-const char *str = stringbuilder_get_str(&sb); // Or sb.str
-printf("String: %s\n", str);
+const char *value = stringbuilder_get_str(&sb); // Or sb.value
+printf("String: %s\n", value);
 ```

@@ -59,9 +59,9 @@ StringBuilderError stringbuilder_init_size(StringBuilder *sb, int32_t size)
 {
     sb->error = STRING_BUILDER_ERROR_MEM_ALLOC_FAILURE;
     if (size > 0) {
-        sb->str = mem_alloc(sizeof(char) * size);
-        if (sb->str != NULL) {
-            sb->len = 0;
+        sb->value = mem_alloc(sizeof(char) * size);
+        if (sb->value != NULL) {
+            sb->length = 0;
             sb->size = size;
             sb->error = STRING_BUILDER_ERROR_NONE;
         }
@@ -73,12 +73,12 @@ StringBuilderError stringbuilder_init_size(StringBuilder *sb, int32_t size)
 void stringbuilder_finalize(StringBuilder *sb)
 {
     if (sb != NULL) {
-        if (sb->str != NULL) {
-            mem_free(sb->str);
+        if (sb->value != NULL) {
+            mem_free(sb->value);
         }
 
-        sb->str = NULL;
-        sb->len = 0;
+        sb->value = NULL;
+        sb->length = 0;
         sb->size = 0;
         sb->error = STRING_BUILDER_ERROR_NONE;
     }
@@ -86,11 +86,11 @@ void stringbuilder_finalize(StringBuilder *sb)
 
 StringBuilderError stringbuilder_copy(StringBuilder *src, StringBuilder *dest)
 {
-    src->error = stringbuilder_init_size(dest, src->len + 1);
+    src->error = stringbuilder_init_size(dest, src->length + 1);
     if (src->error == STRING_BUILDER_ERROR_NONE) {
-        memcpy(dest->str, src->str, src->len);
-        dest->len = src->len;
-        dest->str[dest->len] = '\0';
+        memcpy(dest->value, src->value, src->length);
+        dest->length = src->length;
+        dest->value[dest->length] = '\0';
     }
 
     return src->error;
@@ -98,7 +98,7 @@ StringBuilderError stringbuilder_copy(StringBuilder *src, StringBuilder *dest)
 
 const char *stringbuilder_get_str(const StringBuilder *sb)
 {
-    return sb->str;
+    return sb->value;
 }
 
 StringBuilderError stringbuilder_get_last_error(const StringBuilder *sb)
@@ -120,19 +120,19 @@ const char *stringbuilder_get_error_msg(StringBuilderError code)
 
 int32_t stringbuilder_get_length(const StringBuilder *sb)
 {
-    return sb->len;
+    return sb->length;
 }
 
 StringBuilderError stringbuilder_set_length(StringBuilder *sb, int32_t length)
 {
     ENSURE_MEMORY_SIZE(sb, length);
-    if (length > sb->len) {
-        char *dst = sb->str + sb->len;
-        memset(dst, 0, length - sb->len);
+    if (length > sb->length) {
+        char *dst = sb->value + sb->length;
+        memset(dst, 0, length - sb->length);
     }
 
-    sb->len = length;
-    sb->str[length] = '\0';
+    sb->length = length;
+    sb->value[length] = '\0';
     return sb->error;
 }
 
@@ -144,14 +144,14 @@ int32_t stringbuilder_get_size(const StringBuilder *sb)
 StringBuilderError stringbuilder_set_size(StringBuilder *sb, int32_t newSize)
 {
     sb->error = STRING_BUILDER_ERROR_MEM_ALLOC_FAILURE;
-    char *tmp = mem_realloc(sb->str, sizeof(char) * newSize);
+    char *tmp = mem_realloc(sb->value, sizeof(char) * newSize);
     if (tmp != NULL) {
-        sb->str = tmp;
+        sb->value = tmp;
         sb->size = newSize;
         sb->error = STRING_BUILDER_ERROR_NONE;
-        if (sb->len >= sb->size) {
-            sb->len = sb->size - 1;
-            sb->str[sb->len] = '\0';
+        if (sb->length >= sb->size) {
+            sb->length = sb->size - 1;
+            sb->value[sb->length] = '\0';
         }
     }
 
@@ -164,9 +164,9 @@ int stringbuilder_compare(const StringBuilder *a, const StringBuilder *b)
         return 0;
     }
 
-    int result = memcmp(a->str, b->str, min(a->len, b->len));
+    int result = memcmp(a->value, b->value, min(a->length, b->length));
     if (!result) {
-        result = (int) (a->len - b->len);
+        result = (int) (a->length - b->length);
     }
 
     return result;
@@ -174,7 +174,7 @@ int stringbuilder_compare(const StringBuilder *a, const StringBuilder *b)
 
 bool stringbuilder_equals(const StringBuilder *a, const StringBuilder *b)
 {
-    return a == b || a->len == b->len && memcmp(a->str, b->str, a->len) == 0;
+    return a == b || a->length == b->length && memcmp(a->value, b->value, a->length) == 0;
 }
 
 static char *internal_string_pos(char *str, int32_t str_len, const char *needle, int32_t needle_len)
@@ -216,55 +216,55 @@ static char *internal_string_pos(char *str, int32_t str_len, const char *needle,
 
 int32_t stringbuilder_index_of(const StringBuilder *sb, const char *needle, int32_t needle_len)
 {
-    const char *pos = internal_string_pos(sb->str, sb->len, needle, needle_len);
-    return pos == NULL ? -1 : (int32_t) (pos - sb->str);
+    const char *pos = internal_string_pos(sb->value, sb->length, needle, needle_len);
+    return pos == NULL ? -1 : (int32_t) (pos - sb->value);
 }
 
 bool stringbuilder_contains(const StringBuilder *sb, const char *needle, int32_t needle_len)
 {
-    return internal_string_pos(sb->str, sb->len, needle, needle_len) != NULL;
+    return internal_string_pos(sb->value, sb->length, needle, needle_len) != NULL;
 }
 
 bool stringbuilder_starts_with(const StringBuilder *sb, const char *prefix, int32_t prefix_len)
 {
-    if (sb->len < prefix_len) {
+    if (sb->length < prefix_len) {
         return false;
     }
 
-    return memcmp(sb->str, prefix, prefix_len) == 0;
+    return memcmp(sb->value, prefix, prefix_len) == 0;
 }
 
 bool stringbuilder_ends_with(const StringBuilder *sb, const char *suffix, int32_t suffix_len)
 {
-    if (sb->len < suffix_len) {
+    if (sb->length < suffix_len) {
         return false;
     }
 
-    const char *ptr = sb->str + sb->len - suffix_len;
+    const char *ptr = sb->value + sb->length - suffix_len;
     return memcmp(ptr, suffix, suffix_len) == 0;
 }
 
 StringBuilderError stringbuilder_concat(StringBuilder *sb, const StringBuilder *other)
 {
-    return stringbuilder_append_string(sb, other->str, other->len);
+    return stringbuilder_append_string(sb, other->value, other->length);
 }
 
 StringBuilderError stringbuilder_append_char(StringBuilder *sb, char c)
 {
-    ENSURE_MEMORY_SIZE(sb, sb->len + 1);
-    sb->str[sb->len++] = c;
-    sb->str[sb->len] = '\0';
+    ENSURE_MEMORY_SIZE(sb, sb->length + 1);
+    sb->value[sb->length++] = c;
+    sb->value[sb->length] = '\0';
     return sb->error;
 }
 
 StringBuilderError stringbuilder_append_string(StringBuilder *sb, const char *string, int32_t len)
 {
-    int32_t newLen = sb->len + len;
+    int32_t newLen = sb->length + len;
     ENSURE_MEMORY_SIZE(sb, newLen);
-    char *dst = sb->str + sb->len;
+    char *dst = sb->value + sb->length;
     memcpy(dst, string, len);
-    sb->len = newLen;
-    sb->str[newLen] = '\0';
+    sb->length = newLen;
+    sb->value[newLen] = '\0';
     return sb->error;
 }
 
@@ -274,13 +274,13 @@ StringBuilderError stringbuilder_append_format(StringBuilder *sb, const char *fm
     va_start(args, fmt);
 
     int chars = vsnprintf(NULL, 0, fmt, args);
-    ENSURE_MEMORY_SIZE(sb, sb->len + chars);
+    ENSURE_MEMORY_SIZE(sb, sb->length + chars);
 
-    char *ptr = sb->str + sb->len;
-    vsnprintf(ptr, sb->size - sb->len, fmt, args);
+    char *ptr = sb->value + sb->length;
+    vsnprintf(ptr, sb->size - sb->length, fmt, args);
     va_end(args);
-    sb->len += chars;
-    sb->str[sb->len] = '\0';
+    sb->length += chars;
+    sb->value[sb->length] = '\0';
     return sb->error;
 }
 
@@ -291,11 +291,11 @@ static StringBuilderError internal_append_int(StringBuilder *sb, const char *fmt
         return stringbuilder_append_char(sb, c);
     }
 
-    ENSURE_MEMORY_SIZE(sb, sb->len + UINT64_MAX_STRLEN);
-    char *ptr = sb->str + sb->len;
-    int chars = snprintf(ptr, sb->size - sb->len, fmt, value);
-    sb->len += chars;
-    sb->str[sb->len] = '\0';
+    ENSURE_MEMORY_SIZE(sb, sb->length + UINT64_MAX_STRLEN);
+    char *ptr = sb->value + sb->length;
+    int chars = snprintf(ptr, sb->size - sb->length, fmt, value);
+    sb->length += chars;
+    sb->value[sb->length] = '\0';
     return sb->error;
 }
 
@@ -312,20 +312,20 @@ StringBuilderError stringbuilder_append_uint(StringBuilder *sb, uint64_t value)
 StringBuilderError stringbuilder_append_float(StringBuilder *sb, double value, int32_t decimals)
 {
     int chars = snprintf(NULL, 0, "%.*f", decimals, value);
-    ENSURE_MEMORY_SIZE(sb, sb->len + chars);
+    ENSURE_MEMORY_SIZE(sb, sb->length + chars);
 
-    char *ptr = sb->str + sb->len;
-    snprintf(ptr, sb->size - sb->len, "%.*f", decimals, value);
-    sb->len += chars;
-    sb->str[sb->len] = '\0';
+    char *ptr = sb->value + sb->length;
+    snprintf(ptr, sb->size - sb->length, "%.*f", decimals, value);
+    sb->length += chars;
+    sb->value[sb->length] = '\0';
     return sb->error;
 }
 
 static void internal_case_convert(StringBuilder *sb, int (*convert)(int))
 {
-    if (sb->len > 0) {
-        char *c = sb->str;
-        const char *e = c + sb->len;
+    if (sb->length > 0) {
+        char *c = sb->value;
+        const char *e = c + sb->length;
 
         while (c < e) {
             *c = (char) convert(*c);
@@ -347,9 +347,9 @@ void stringbuilder_to_lowercase(StringBuilder *sb)
 int stringbuilder_replace_char(StringBuilder *sb, char search, char replace)
 {
     int n = 0;
-    if (sb->len > 0) {
-        char *c = sb->str;
-        const char *e = c + sb->len;
+    if (sb->length > 0) {
+        char *c = sb->value;
+        const char *e = c + sb->length;
         while ((c = memchr(c, search, e - c)) != NULL) {
             *c = replace;
             c++;
@@ -367,22 +367,22 @@ StringBuilderError stringbuilder_repeat(StringBuilder *sb, int times)
     }
 
     sb->error = STRING_BUILDER_ERROR_NONE;
-    if (sb->len > 0) {
+    if (sb->length > 0) {
         if (times == 0) {
-            sb->len = 0;
-            sb->str[0] = '\0';
+            sb->length = 0;
+            sb->value[0] = '\0';
         } else {
-            int32_t newLen = sb->len + (sb->len * (times - 1));
+            int32_t newLen = sb->length + (sb->length * (times - 1));
             ENSURE_MEMORY_SIZE(sb, newLen);
 
-            char *dst = sb->str + sb->len;
+            char *dst = sb->value + sb->length;
             while (--times > 0) {
-                memmove(dst, sb->str, sb->len);
-                dst += sb->len;
+                memmove(dst, sb->value, sb->length);
+                dst += sb->length;
             }
 
-            sb->len = newLen;
-            sb->str[newLen] = '\0';
+            sb->length = newLen;
+            sb->value[newLen] = '\0';
         }
     }
 
@@ -391,9 +391,9 @@ StringBuilderError stringbuilder_repeat(StringBuilder *sb, int times)
 
 void stringbuilder_trim(StringBuilder *sb)
 {
-    if (sb->len > 0) {
-        const char *c = sb->str;
-        const char *e = c + sb->len;
+    if (sb->length > 0) {
+        const char *c = sb->value;
+        const char *e = c + sb->length;
 
         // Trim the beginning of the string
         while (c < e && isspace(*c)) {
@@ -403,8 +403,8 @@ void stringbuilder_trim(StringBuilder *sb)
         if (c == e) {
             // The whole string is made of whitespace.
             // Set the length to 0 and return earlier
-            sb->len = 0;
-            sb->str[0] = '\0';
+            sb->length = 0;
+            sb->value[0] = '\0';
             return;
         }
 
@@ -415,22 +415,22 @@ void stringbuilder_trim(StringBuilder *sb)
         }
 
         int32_t newLen = ((int32_t) (e - c)) + 1;
-        if (c > sb->str) {
-            memmove(sb->str, c, newLen);
+        if (c > sb->value) {
+            memmove(sb->value, c, newLen);
         }
 
-        sb->len = newLen;
-        sb->str[newLen] = '\0';
+        sb->length = newLen;
+        sb->value[newLen] = '\0';
     }
 }
 
 int stringbuilder_split(const StringBuilder *sb, StringBuilder *pieces, int32_t max_pieces, const char *separator, int32_t separator_len)
 {
     int n = 0;
-    if (sb->len > 0 && max_pieces > 0) {
-        char *start = sb->str;
-        char *end = start + sb->len;
-        char *current = internal_string_pos(start, sb->len, separator, separator_len);
+    if (sb->length > 0 && max_pieces > 0) {
+        char *start = sb->value;
+        char *end = start + sb->length;
+        char *current = internal_string_pos(start, sb->length, separator, separator_len);
 
         while (current != NULL && n + 1 < max_pieces) {
             StringBuilder *p = &pieces[n];
