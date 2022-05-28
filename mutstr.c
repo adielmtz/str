@@ -1,4 +1,4 @@
-#include "stringbuilder.h"
+#include "mutstr.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@
         if (((requiredSize) + 1) > newSize) {                                     \
             newSize = ((requiredSize) + 1);                                       \
         }                                                                         \
-        if (stringbuilder_set_size((sb), newSize) != STRING_BUILDER_ERROR_NONE) { \
+        if (mutstr_set_size((sb), newSize) != MUTSTR_ERROR_NONE) { \
             return (sb)->error;                                                   \
         }                                                                         \
     }                                                                             \
@@ -35,42 +35,42 @@ static void *(*mem_alloc)(size_t) = malloc;
 static void *(*mem_realloc)(void *, size_t) = realloc;
 static void (*mem_free)(void *) = free;
 
-void stringbuilder_set_memory_alloc(void *(*malloc_fn)(size_t))
+void mutstr_set_memory_alloc(void *(*malloc_fn)(size_t))
 {
     mem_alloc = malloc_fn;
 }
 
-void stringbuilder_set_memory_realloc(void *(*realloc_fn)(void *, size_t))
+void mutstr_set_memory_realloc(void *(*realloc_fn)(void *, size_t))
 {
     mem_realloc = realloc_fn;
 }
 
-void stringbuilder_set_memory_free(void (*free_fn)(void *))
+void mutstr_set_memory_free(void (*free_fn)(void *))
 {
     mem_free = free_fn;
 }
 
-StringBuilderError stringbuilder_init(StringBuilder *sb)
+MutStrState mutstr_init(MutStr *sb)
 {
-    return stringbuilder_init_size(sb, STRING_BUILDER_DEFAULT_INITIAL_SIZE);
+    return mutstr_init_size(sb, MUTSTR_DEFAULT_INITIAL_SIZE);
 }
 
-StringBuilderError stringbuilder_init_size(StringBuilder *sb, int32_t size)
+MutStrState mutstr_init_size(MutStr *sb, int32_t size)
 {
-    sb->error = STRING_BUILDER_ERROR_MEM_ALLOC_FAILURE;
+    sb->error = MUTSTR_ERROR_MEM_ALLOC_FAILURE;
     if (size > 0) {
         sb->value = mem_alloc(sizeof(char) * size);
         if (sb->value != NULL) {
             sb->length = 0;
             sb->size = size;
-            sb->error = STRING_BUILDER_ERROR_NONE;
+            sb->error = MUTSTR_ERROR_NONE;
         }
     }
 
     return sb->error;
 }
 
-void stringbuilder_finalize(StringBuilder *sb)
+void mutstr_finalize(MutStr *sb)
 {
     if (sb != NULL) {
         if (sb->value != NULL) {
@@ -80,14 +80,14 @@ void stringbuilder_finalize(StringBuilder *sb)
         sb->value = NULL;
         sb->length = 0;
         sb->size = 0;
-        sb->error = STRING_BUILDER_ERROR_NONE;
+        sb->error = MUTSTR_ERROR_NONE;
     }
 }
 
-StringBuilderError stringbuilder_copy(StringBuilder *src, StringBuilder *dest)
+MutStrState mutstr_copy(MutStr *src, MutStr *dest)
 {
-    src->error = stringbuilder_init_size(dest, src->length + 1);
-    if (src->error == STRING_BUILDER_ERROR_NONE) {
+    src->error = mutstr_init_size(dest, src->length + 1);
+    if (src->error == MUTSTR_ERROR_NONE) {
         memcpy(dest->value, src->value, src->length);
         dest->length = src->length;
         dest->value[dest->length] = '\0';
@@ -96,34 +96,34 @@ StringBuilderError stringbuilder_copy(StringBuilder *src, StringBuilder *dest)
     return src->error;
 }
 
-const char *stringbuilder_get_str(const StringBuilder *sb)
+const char *mutstr_get_str(const MutStr *sb)
 {
     return sb->value;
 }
 
-StringBuilderError stringbuilder_get_last_error(const StringBuilder *sb)
+MutStrState mutstr_get_last_error(const MutStr *sb)
 {
     return sb->error;
 }
 
-const char *stringbuilder_get_error_msg(StringBuilderError code)
+const char *mutstr_get_error_msg(MutStrState code)
 {
 #define CASE_RETURN_ENUM_AS_STRING(val) case val: return #val
     switch (code) {
-        CASE_RETURN_ENUM_AS_STRING(STRING_BUILDER_ERROR_NONE);
-        CASE_RETURN_ENUM_AS_STRING(STRING_BUILDER_ERROR_MEM_ALLOC_FAILURE);
-        CASE_RETURN_ENUM_AS_STRING(STRING_BUILDER_ERROR_OUT_OF_RANGE);
+        CASE_RETURN_ENUM_AS_STRING(MUTSTR_ERROR_NONE);
+        CASE_RETURN_ENUM_AS_STRING(MUTSTR_ERROR_MEM_ALLOC_FAILURE);
+        CASE_RETURN_ENUM_AS_STRING(MUTSTR_ERROR_OUT_OF_RANGE);
         default:
             return "Unknown error code";
     }
 }
 
-int32_t stringbuilder_get_length(const StringBuilder *sb)
+int32_t mutstr_get_length(const MutStr *sb)
 {
     return sb->length;
 }
 
-StringBuilderError stringbuilder_set_length(StringBuilder *sb, int32_t length)
+MutStrState mutstr_set_length(MutStr *sb, int32_t length)
 {
     ENSURE_MEMORY_SIZE(sb, length);
     if (length > sb->length) {
@@ -136,19 +136,19 @@ StringBuilderError stringbuilder_set_length(StringBuilder *sb, int32_t length)
     return sb->error;
 }
 
-int32_t stringbuilder_get_size(const StringBuilder *sb)
+int32_t mutstr_get_size(const MutStr *sb)
 {
     return sb->size;
 }
 
-StringBuilderError stringbuilder_set_size(StringBuilder *sb, int32_t newSize)
+MutStrState mutstr_set_size(MutStr *sb, int32_t newSize)
 {
-    sb->error = STRING_BUILDER_ERROR_MEM_ALLOC_FAILURE;
+    sb->error = MUTSTR_ERROR_MEM_ALLOC_FAILURE;
     char *tmp = mem_realloc(sb->value, sizeof(char) * newSize);
     if (tmp != NULL) {
         sb->value = tmp;
         sb->size = newSize;
-        sb->error = STRING_BUILDER_ERROR_NONE;
+        sb->error = MUTSTR_ERROR_NONE;
         if (sb->length >= sb->size) {
             sb->length = sb->size - 1;
             sb->value[sb->length] = '\0';
@@ -158,7 +158,7 @@ StringBuilderError stringbuilder_set_size(StringBuilder *sb, int32_t newSize)
     return sb->error;
 }
 
-int stringbuilder_compare(const StringBuilder *a, const StringBuilder *b)
+int mutstr_compare(const MutStr *a, const MutStr *b)
 {
     if (a == b) {
         return 0;
@@ -172,9 +172,9 @@ int stringbuilder_compare(const StringBuilder *a, const StringBuilder *b)
     return result;
 }
 
-bool stringbuilder_equals(const StringBuilder *a, const StringBuilder *b)
+bool mutstr_equals(const MutStr *a, const MutStr *b)
 {
-    return a == b || a->length == b->length && memcmp(a->value, b->value, a->length) == 0;
+    return a == b || (a->length == b->length && memcmp(a->value, b->value, a->length) == 0);
 }
 
 static char *internal_string_pos(char *str, int32_t str_len, const char *needle, int32_t needle_len)
@@ -214,18 +214,18 @@ static char *internal_string_pos(char *str, int32_t str_len, const char *needle,
     return NULL;
 }
 
-int32_t stringbuilder_index_of(const StringBuilder *sb, const char *needle, int32_t needle_len)
+int32_t mutstr_indexof(const MutStr *sb, const char *needle, int32_t needle_len)
 {
     const char *pos = internal_string_pos(sb->value, sb->length, needle, needle_len);
     return pos == NULL ? -1 : (int32_t) (pos - sb->value);
 }
 
-bool stringbuilder_contains(const StringBuilder *sb, const char *needle, int32_t needle_len)
+bool mutstr_contains(const MutStr *sb, const char *needle, int32_t needle_len)
 {
     return internal_string_pos(sb->value, sb->length, needle, needle_len) != NULL;
 }
 
-bool stringbuilder_starts_with(const StringBuilder *sb, const char *prefix, int32_t prefix_len)
+bool mutstr_starts_with(const MutStr *sb, const char *prefix, int32_t prefix_len)
 {
     if (sb->length < prefix_len) {
         return false;
@@ -234,7 +234,7 @@ bool stringbuilder_starts_with(const StringBuilder *sb, const char *prefix, int3
     return memcmp(sb->value, prefix, prefix_len) == 0;
 }
 
-bool stringbuilder_ends_with(const StringBuilder *sb, const char *suffix, int32_t suffix_len)
+bool mutstr_ends_with(const MutStr *sb, const char *suffix, int32_t suffix_len)
 {
     if (sb->length < suffix_len) {
         return false;
@@ -244,12 +244,12 @@ bool stringbuilder_ends_with(const StringBuilder *sb, const char *suffix, int32_
     return memcmp(ptr, suffix, suffix_len) == 0;
 }
 
-StringBuilderError stringbuilder_concat(StringBuilder *sb, const StringBuilder *other)
+MutStrState mutstr_concat(MutStr *sb, const MutStr *other)
 {
-    return stringbuilder_append_string(sb, other->value, other->length);
+    return mutstr_append_string(sb, other->value, other->length);
 }
 
-StringBuilderError stringbuilder_append_char(StringBuilder *sb, char c)
+MutStrState mutstr_append_char(MutStr *sb, char c)
 {
     ENSURE_MEMORY_SIZE(sb, sb->length + 1);
     sb->value[sb->length++] = c;
@@ -257,7 +257,7 @@ StringBuilderError stringbuilder_append_char(StringBuilder *sb, char c)
     return sb->error;
 }
 
-StringBuilderError stringbuilder_append_string(StringBuilder *sb, const char *string, int32_t len)
+MutStrState mutstr_append_string(MutStr *sb, const char *string, int32_t len)
 {
     int32_t newLen = sb->length + len;
     ENSURE_MEMORY_SIZE(sb, newLen);
@@ -268,7 +268,7 @@ StringBuilderError stringbuilder_append_string(StringBuilder *sb, const char *st
     return sb->error;
 }
 
-StringBuilderError stringbuilder_append_format(StringBuilder *sb, const char *fmt, ...)
+MutStrState mutstr_append_format(MutStr *sb, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -284,11 +284,11 @@ StringBuilderError stringbuilder_append_format(StringBuilder *sb, const char *fm
     return sb->error;
 }
 
-static StringBuilderError internal_append_int(StringBuilder *sb, const char *fmt, uint64_t value)
+static MutStrState internal_append_int(MutStr *sb, const char *fmt, uint64_t value)
 {
     if (value <= (uint64_t) 9) {
         char c = (char) (value + '0');
-        return stringbuilder_append_char(sb, c);
+        return mutstr_append_char(sb, c);
     }
 
     ENSURE_MEMORY_SIZE(sb, sb->length + UINT64_MAX_STRLEN);
@@ -299,17 +299,17 @@ static StringBuilderError internal_append_int(StringBuilder *sb, const char *fmt
     return sb->error;
 }
 
-StringBuilderError stringbuilder_append_int(StringBuilder *sb, int64_t value)
+MutStrState mutstr_append_int(MutStr *sb, int64_t value)
 {
     return internal_append_int(sb, LONG_FMT, (uint64_t) value);
 }
 
-StringBuilderError stringbuilder_append_uint(StringBuilder *sb, uint64_t value)
+MutStrState mutstr_append_uint(MutStr *sb, uint64_t value)
 {
     return internal_append_int(sb, ULONG_FMT, value);
 }
 
-StringBuilderError stringbuilder_append_float(StringBuilder *sb, double value, int32_t decimals)
+MutStrState mutstr_append_float(MutStr *sb, double value, int32_t decimals)
 {
     int chars = snprintf(NULL, 0, "%.*f", decimals, value);
     ENSURE_MEMORY_SIZE(sb, sb->length + chars);
@@ -321,7 +321,7 @@ StringBuilderError stringbuilder_append_float(StringBuilder *sb, double value, i
     return sb->error;
 }
 
-static void internal_case_convert(StringBuilder *sb, int (*convert)(int))
+static void internal_case_convert(MutStr *sb, int (*convert)(int))
 {
     if (sb->length > 0) {
         char *c = sb->value;
@@ -334,17 +334,17 @@ static void internal_case_convert(StringBuilder *sb, int (*convert)(int))
     }
 }
 
-void stringbuilder_to_uppercase(StringBuilder *sb)
+void mutstr_to_uppercase(MutStr *sb)
 {
     internal_case_convert(sb, toupper);
 }
 
-void stringbuilder_to_lowercase(StringBuilder *sb)
+void mutstr_to_lowercase(MutStr *sb)
 {
     internal_case_convert(sb, tolower);
 }
 
-int stringbuilder_replace_char(StringBuilder *sb, char search, char replace)
+int mutstr_replace_char(MutStr *sb, char search, char replace)
 {
     int n = 0;
     if (sb->length > 0) {
@@ -360,13 +360,13 @@ int stringbuilder_replace_char(StringBuilder *sb, char search, char replace)
     return n;
 }
 
-StringBuilderError stringbuilder_repeat(StringBuilder *sb, int times)
+MutStrState mutstr_repeat(MutStr *sb, int times)
 {
     if (times < 0) {
-        return sb->error = STRING_BUILDER_ERROR_OUT_OF_RANGE;
+        return sb->error = MUTSTR_ERROR_OUT_OF_RANGE;
     }
 
-    sb->error = STRING_BUILDER_ERROR_NONE;
+    sb->error = MUTSTR_ERROR_NONE;
     if (sb->length > 0) {
         if (times == 0) {
             sb->length = 0;
@@ -389,7 +389,7 @@ StringBuilderError stringbuilder_repeat(StringBuilder *sb, int times)
     return sb->error;
 }
 
-void stringbuilder_trim(StringBuilder *sb)
+void mutstr_trim(MutStr *sb)
 {
     if (sb->length > 0) {
         const char *c = sb->value;
@@ -424,7 +424,7 @@ void stringbuilder_trim(StringBuilder *sb)
     }
 }
 
-int stringbuilder_split(const StringBuilder *sb, StringBuilder *pieces, int32_t max_pieces, const char *separator, int32_t separator_len)
+int mutstr_split(const MutStr *sb, MutStr *pieces, int32_t max_pieces, const char *separator, int32_t separator_len)
 {
     int n = 0;
     if (sb->length > 0 && max_pieces > 0) {
@@ -433,10 +433,10 @@ int stringbuilder_split(const StringBuilder *sb, StringBuilder *pieces, int32_t 
         char *current = internal_string_pos(start, sb->length, separator, separator_len);
 
         while (current != NULL && n + 1 < max_pieces) {
-            StringBuilder *p = &pieces[n];
+            MutStr *p = &pieces[n];
             int32_t len = (int32_t) (current - start);
-            stringbuilder_init_size(p, len + 1);
-            stringbuilder_append_string(p, start, len);
+            mutstr_init_size(p, len + 1);
+            mutstr_append_string(p, start, len);
 
             int32_t remaining = (int32_t) (end - current);
             start = current + separator_len;
@@ -446,10 +446,10 @@ int stringbuilder_split(const StringBuilder *sb, StringBuilder *pieces, int32_t 
 
         // Split the remaining part of the string
         if (start <= end && n < max_pieces) {
-            StringBuilder *p = &pieces[n++];
+            MutStr *p = &pieces[n++];
             int32_t len = (int32_t) (end - start);
-            stringbuilder_init_size(p, len + 1);
-            stringbuilder_append_string(p, start, len);
+            mutstr_init_size(p, len + 1);
+            mutstr_append_string(p, start, len);
         }
     }
 
