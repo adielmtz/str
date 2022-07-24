@@ -304,3 +304,39 @@ void mutstr_to_lowercase(MutStr *mutstr)
 {
     internal_case_convert(mutstr, tolower);
 }
+
+void mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
+{
+    MUTSTR_CLEAR_STATE(mutstr);
+    const char *s = mutstr->value;
+    const char *e = MUTSTR_TAIL_PTR(mutstr);
+
+    if (options & MUTSTR_TRIM_LEFT) {
+        while (s < e && isspace(*s)) {
+            s++;
+        }
+    }
+
+    if (s == e) {
+        // truncate to empty string
+        mutstr->value[0] = '\0';
+        mutstr->length = 0;
+        return;
+    }
+
+    // skip trailing null byte
+    e--;
+    if (options & MUTSTR_TRIM_RIGHT) {
+        while (e > s && isspace(*e)) {
+            e--;
+        }
+    }
+
+    int32_t length = ((int32_t) (e - s)) + 1;
+    if (s > mutstr->value) {
+        memmove(mutstr->value, s, length);
+    }
+
+    mutstr->length = length;
+    mutstr->value[length] = '\0';
+}

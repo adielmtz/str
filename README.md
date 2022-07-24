@@ -47,7 +47,9 @@ mutstr_finalize(&copy);
 ```
 
 ## String Properties
+
 ### Get/Set the length the string
+
 MutStr exposes its `length` and `size` properties for read. However, changing their values may result in the bad
 handling or behaviour of the API, which can cause a segfault.
 
@@ -65,6 +67,7 @@ mutstr_set_length(&mutstr, 10);     // Expands to:   "Hello\0\0\0\0\0"
 ```
 
 ### Get/Set the size of the string
+
 The size of the MutStr object refers to the total amount of allocated memory. This value is always larger than the
 length of the string: `size >= length + 1`.
 
@@ -80,6 +83,7 @@ mutstr_set_size(&mutstr, 4);    // Truncates to: "Wat" (length = size - 1)
 ```
 
 ### String comparison
+
 `mutstr_compare`:
 
 * Returns a negative integer if the first string is less than the second string.
@@ -155,4 +159,26 @@ This API is binary safe, you can append a string that contains NULL chars:
 ```c
 mutstr_append_char(&sb, '\0'); // OK!
 mutstr_append_string(&sb, "Contains\0NULL\0chars!", 20); // Works as long as you know the length
+```
+
+### Trim
+
+Use `mutstr_trim()` function to trim whitespace off the string:
+
+```c
+MutStr mutstr;
+mutstr_init(&mutstr);
+
+mutstr_append_literal(&mutstr, "    Padded String      ");
+
+// Trim left side
+mutstr_trim(&mutstr, MUTSTR_TRIM_LEFT); // "Padded String      "
+
+// Trim right side
+mutstr_trim(&mutstr, MUTSTR_TRIM_RIGHT); // "    Padded String"
+
+// Trim both sides
+mutstr_trim(&mutstr, MUTSTR_TRIM_BOTH); // "Padded String"
+
+mutstr_finalize(&mutstr);
 ```

@@ -14,6 +14,13 @@ typedef enum MutStrState
     MUTSTR_UNKNOWN_LENGTH = 4,
 } MutStrState;
 
+typedef enum MutStrTrimOptions
+{
+    MUTSTR_TRIM_LEFT = 1,
+    MUTSTR_TRIM_RIGHT = 2,
+    MUTSTR_TRIM_BOTH = MUTSTR_TRIM_LEFT | MUTSTR_TRIM_RIGHT,
+} MutStrTrimOptions;
+
 typedef struct MutStr
 {
     char *value;       // The string pointer. Must be NULL terminated
@@ -217,3 +224,11 @@ void mutstr_to_uppercase(MutStr *mutstr);
  * @param mutstr The MutStr object to convert to lowercase.
  */
 void mutstr_to_lowercase(MutStr *mutstr);
+
+/**
+ * Trims the whitespace off the MutStr object.
+ *
+ * @param mutstr The MutStr object to trim.
+ * @param options Trim options.
+ */
+void mutstr_trim(MutStr *mutstr, MutStrTrimOptions options);
