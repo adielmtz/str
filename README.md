@@ -13,7 +13,7 @@ Copy `mutstr.h` & `mutstr.c` to your project directory and include it:
 ## Initialization
 
 Use the functions `mutstr_init()` or `mutstr_init_size()` to initialize a MutStr object.
-After you're done working with your string, use `mutstr_finalize()` to deallocate the memory used by the MutStr API.
+After you're done working with your string, use `mutstr_finalize()` to deallocate the memory used by the MutStr object:
 
 ```c
 #include "mutstr.h"
@@ -50,13 +50,13 @@ mutstr_finalize(&copy);
 
 ### Get/Set the length the string
 
-MutStr exposes its `length` and `size` properties for read. However, changing their values may result in the bad
-handling or behaviour of the API, which can cause a segfault.
+MutStr exposes its `length` and `size` properties for read, however, modifying their values may cause a bad behaviour of
+the API which can result in a segfault.
 
-The length of the string counts how many bytes represent the actual string contents in memory.
-To change the value of the length of the string, you must use the `mutstr_set_length()` function:
+The length of the string counts how many bytes represent the actual string contents in memory and it does not count
+the NULL terminator. To change the length of the string you must use the `mutstr_set_length()` function:
 
-* If the value is greater than the original length, the gap (or extra space) will be filled with NULL characters
+* If the value is greater than the original length, the gap/extra space will be filled with `\0`.
 * If the value is less than the original length, the string will be truncated.
 
 ```c
@@ -68,10 +68,10 @@ mutstr_set_length(&mutstr, 10);     // Expands to:   "Hello\0\0\0\0\0"
 
 ### Get/Set the size of the string
 
-The size of the MutStr object refers to the total amount of allocated memory. This value is always larger than the
+The size of the MutStr object refers to the amount of allocated memory. This value is always larger than the
 length of the string: `size >= length + 1`.
 
-MutStr keeps track of the allocated memory using the `size` field. To change it, you must use the `mutstr_set_size()`
+The API keeps track of the allocated memory using the `size` field. To change it, you must use the `mutstr_set_size()`
 function:
 
 * If the size is less than or equal to the length of the string, the length will be truncated to `size - 1`.
@@ -82,7 +82,7 @@ int32_t old_size = mutstr.size; // size=64
 mutstr_set_size(&mutstr, 4);    // Truncates to: "Wat" (length = size - 1)
 ```
 
-### String comparison
+## String comparison
 
 `mutstr_compare`:
 
@@ -122,7 +122,7 @@ mutstr_finalize(&a);
 mutstr_finalize(&b);
 ```
 
-### Concatenation
+## Concatenation
 
 You can concatenate strings (& other values) using the `mutstr_append_*()` functions:
 
@@ -161,7 +161,7 @@ mutstr_append_char(&sb, '\0'); // OK!
 mutstr_append_string(&sb, "Contains\0NULL\0chars!", 20); // Works as long as you know the length
 ```
 
-### Trim
+## Trim
 
 Use `mutstr_trim()` function to trim whitespace off the string:
 
