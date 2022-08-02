@@ -33,7 +33,7 @@ do {                                        \
     (mutstr)->state = MUTSTR_UNINITIALIZED; \
 } while (0)
 
-static int32_t safe_strlen(const char *s)
+static int32_t mutstr_strnlen(const char *s)
 {
     const char *n = memchr(s, '\0', INT32_MAX);
     return n == NULL ? -1 : ((int32_t) (n - s));
@@ -148,70 +148,84 @@ bool mutstr_equals(const MutStr *a, const MutStr *b)
     return a == b || (a->length == b->length && memcmp(a->value, b->value, a->length) == 0);
 }
 
-static char *internal_find_substring_offset(char *str, int32_t str_len, const char *substr, int32_t substr_len)
+static char *mutstr_memmem(char *haystack, int32_t haystack_len, const char *needle, int32_t needle_len)
 {
-    if (substr_len == 0) {
-        // all strings contain an empty string
-        return str;
+    if (needle_len == 0) {
+        return haystack;
     }
 
-    if (str_len > 0) {
-        if (substr_len == 1) {
-            return memchr(str, substr[0], str_len);
-        } else if (substr_len > 1 && substr_len <= str_len) {
-            char *current = str;
-            const char *end = str + str_len;
+    if (haystack_len >= needle_len) {
+        if (needle_len == 1) {
+            return memchr(haystack, *needle, haystack_len);
+        } else {
+            const char *end = haystack + haystack_len;
+            haystack = memchr(haystack, *needle, end - haystack);
 
-            do {
-                current = memchr(current, substr[0], end - current);
-                if (current == NULL) {
-                    break;
+            while (haystack != NULL && haystack + needle_len <= end) {
+                if (memcmp(haystack, needle, needle_len) == 0) {
+                    return haystack;
                 }
 
-                if (memcmp(current + 1, substr + 1, substr_len - 1) == 0) {
-                    return current;
-                }
-
-                current += substr_len;
-            } while (current + substr_len < end);
+                haystack = memchr(haystack + needle_len, *needle, end - haystack + needle_len);
+            }
         }
     }
 
-    // substr not found
     return NULL;
 }
 
-int32_t mutstr_indexof(const MutStr *mutstr, const char *substr)
+int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
-    int32_t substr_len = safe_strlen(substr);
-    if (substr_len == -1) {
+    const char *s = mutstr_memmem(mutstr->value, mutstr->length, needle, needle_len);
+    return s == NULL ? -1 : ((int32_t) (s - mutstr->value));
+}
+
+int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle)
+{
+    int32_t needle_len = mutstr_strnlen(needle);
+    if (needle_len == -1) {
         return -1;
     }
 
-    char *s = internal_find_substring_offset(mutstr->value, mutstr->length, substr, substr_len);
-    return (int32_t) (s - mutstr->value);
+    const char *s = mutstr_memmem(mutstr->value, mutstr->length, needle, needle_len);
+    return s == NULL ? -1 : ((int32_t) (s - mutstr->value));
 }
 
-bool mutstr_contains(const MutStr *mutstr, const char *substr)
+bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
-    int32_t substr_len = safe_strlen(substr);
-    if (substr_len == -1) {
+    return mutstr_memmem(mutstr->value, mutstr->length, needle, needle_len) != NULL;
+}
+
+bool mutstr_contains_literal(const MutStr *mutstr, const char *needle)
+{
+    int32_t needle_len = mutstr_strnlen(needle);
+    if (needle_len == -1) {
         return false;
     }
 
-    return internal_find_substring_offset(mutstr->value, mutstr->length, substr, substr_len);
+    return mutstr_memmem(mutstr->value, mutstr->length, needle, needle_len) != NULL;
 }
 
-bool mutstr_starts_with(const MutStr *mutstr, const char *prefix)
+bool mutstr_starts_with_string(const MutStr *mutstr, const char *prefix, int32_t prefix_len)
 {
-    int32_t prefix_len = safe_strlen(prefix);
-    return prefix_len > -1 && memcmp(mutstr->value, prefix, prefix_len) == 0;
+    return prefix_len >= 0 && memcmp(mutstr->value, prefix, prefix_len) == 0;
 }
 
-bool mutstr_ends_with(const MutStr *mutstr, const char *suffix)
+bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix)
 {
-    int32_t suffix_len = safe_strlen(suffix);
-    return suffix_len > -1 && memcmp(MUTSTR_TAIL_PTR(mutstr) - suffix_len, suffix, suffix_len) == 0;
+    int32_t prefix_len = mutstr_strnlen(prefix);
+    return prefix_len >= 0 && memcmp(mutstr->value, prefix, prefix_len) == 0;
+}
+
+bool mutstr_ends_with_string(const MutStr *mutstr, const char *suffix, int32_t suffix_len)
+{
+    return suffix_len >= 0 && memcmp(MUTSTR_TAIL_PTR(mutstr) - suffix_len, suffix, suffix_len) == 0;
+}
+
+bool mutstr_ends_with_literal(const MutStr *mutstr, const char *suffix)
+{
+    int32_t suffix_len = mutstr_strnlen(suffix);
+    return suffix_len >= 0 && memcmp(MUTSTR_TAIL_PTR(mutstr) - suffix_len, suffix, suffix_len) == 0;
 }
 
 void mutstr_append_mutstr(MutStr *mutstr, const MutStr *other)
@@ -243,7 +257,7 @@ void mutstr_append_string(MutStr *mutstr, const char *str, int32_t length)
 
 void mutstr_append_literal(MutStr *mutstr, const char *str)
 {
-    int32_t length = safe_strlen(str);
+    int32_t length = mutstr_strnlen(str);
     if (length == -1) {
         mutstr->state = MUTSTR_UNKNOWN_LENGTH;
     } else {

@@ -110,22 +110,43 @@ int32_t mutstr_compare(const MutStr *a, const MutStr *b);
 bool mutstr_equals(const MutStr *a, const MutStr *b);
 
 /**
- * Returns the zero-based index of the first occurrence of the substring.
+ * Returns the zero-based index of the first occurrence of the needle.
  *
  * @param mutstr The MutStr object.
- * @param substr The substring to search.
+ * @param needle The needle to search.
+ * @param needle_len The length of the needle.
  *
- * @return The zero-based index of the first occurrence or -1 if the substring is not found.
+ * @return The zero-based index of the first occurrence or -1 if the needle is not present in the MutStr object.
  */
-int32_t mutstr_indexof(const MutStr *mutstr, const char *substr);
+int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t needle_len);
 
 /**
- * Returns true if the MutStr object contains the given substring.
+ * Returns the zero-based index of the first occurrence of the needle.
  *
  * @param mutstr The MutStr object.
- * @param substr The substring to search.
+ * @param needle The needle to search.
+ *
+ * @return The zero-based index of the first occurrence or -1 if the needle is not present in the MutStr object.
  */
-bool mutstr_contains(const MutStr *mutstr, const char *substr);
+int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle);
+
+/**
+ * Returns true if the MutStr object contains the given needle.
+ *
+ * @param mutstr The MutStr object.
+ * @param needle The needle to search.
+ * @param needle_len The length of the needle.
+ */
+bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len);
+
+/**
+ * Returns true if the MutStr object contains the given needle.
+ *
+ * @param mutstr The MutStr object.
+ * @param needle The needle to search.
+ * @return
+ */
+bool mutstr_contains_literal(const MutStr *mutstr, const char *needle);
 
 /**
  * Returns true if the MutStr object starts with the given string.
@@ -133,7 +154,7 @@ bool mutstr_contains(const MutStr *mutstr, const char *substr);
  * @param mutstr The MutStr object.
  * @param prefix The string to compare with.
  */
-bool mutstr_starts_with(const MutStr *mutstr, const char *prefix);
+bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix);
 
 /**
  * Returns true if the MutStr object ends with the given string.
@@ -142,7 +163,7 @@ bool mutstr_starts_with(const MutStr *mutstr, const char *prefix);
  * @param suffix The string to compare with.
  * @return
  */
-bool mutstr_ends_with(const MutStr *mutstr, const char *suffix);
+bool mutstr_ends_with_literal(const MutStr *mutstr, const char *suffix);
 
 /**
  * Appends the value of another MutStr object.
