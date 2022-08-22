@@ -309,3 +309,14 @@ void mutstr_to_lowercase(MutStr *mutstr);
  * @param options Trim options.
  */
 void mutstr_trim(MutStr *mutstr, MutStrTrimOptions options);
+
+/**
+ * Returns a part of the string into an uninitialized MutStr object.
+ *
+ * @param source The source MutStr object.
+ * @param index The index in source where the substring starts.
+ * @param length The length of the substring.
+ * @param result The MutStr object where the substring will be stored. This object must not be initialized,
+ * otherwise it will cause a double initialization, resulting in a memory leak.
+ */
+void mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *result);

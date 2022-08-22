@@ -385,3 +385,21 @@ void mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
     mutstr->length = length;
     mutstr->value[length] = '\0';
 }
+
+void mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *result)
+{
+    if (length < 0 || index < 0 || index >= source->length) {
+        result->state = MUTSTR_INDEX_OUT_OF_RANGE;
+        return;
+    }
+
+    const char *s = source->value + index;
+    if (s + length >= MUTSTR_TAIL_PTR(source)) {
+        length = (int32_t) (MUTSTR_TAIL_PTR(source) - s);
+    }
+
+    mutstr_init_size(result, length + 1);
+    memcpy(result->value, s, length);
+    result->length = length;
+    result->value[length] = '\0';
+}
