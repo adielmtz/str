@@ -79,7 +79,7 @@ void mutstr_set_size(MutStr *mutstr, int32_t size);
 void mutstr_ensure_size(MutStr *mutstr, int32_t required_size);
 
 /**
- * Copies the string of a MutStr object to an uninitialized MutStr object.
+ * Copies the value of a MutStr object to an uninitialized MutStr object.
  *
  * @param source The source MutStr object to copy from.
  * @param destination The destination MutStr object to copy to. This object must not be initialized,
@@ -88,26 +88,66 @@ void mutstr_ensure_size(MutStr *mutstr, int32_t required_size);
 void mutstr_copy(const MutStr *source, MutStr *destination);
 
 /**
- * Compares two MutStr objects.
+ * Compares the value of two MutStr objects.
  *
  * @param a The first MutStr object.
  * @param b The second MutStr object.
  *
- * @return -1 if the first MutStr object is less than the second MutStr object.
- * 0 if both MutStr objects are equal.
- * 1 if the second MutStr object is greater than the first MutStr object.
+ * @return -1 if the value of the first MutStr object is less than the value of the second MutStr object.
+ * 0 if the value of both MutStr objects are equal.
+ * 1 if the value of the second MutStr object is greater than the value of the first MutStr object.
  */
 int32_t mutstr_compare(const MutStr *a, const MutStr *b);
 
 /**
- * Returns true if both MutStr objects are equal.
+ * Compares the value of the MutStr object with the given string.
+ *
+ * @param mutstr The MutStr object.
+ * @param string The string to compare with.
+ * @param length The length of the string.
+ *
+ * @return -1 if the value of the MutStr object is less than the value of the string.
+ * 0 if the value of the MutStr object equals the value of the string.
+ * 1 if the value of the MutStr object is greater than the value of the string.
+ */
+int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length);
+
+/**
+ * Compares the value of the MutStr object with a const string literal.
+ *
+ * @param mutstr The MutStr object.
+ * @param string The string to compare with (must be NULL terminated).
+ *
+ * @return -1 if the value of the MutStr object is less than the value of the string.
+ * 0 if the value of the MutStr object equals the value of the string.
+ * 1 if the value of the MutStr object is greater than the value of the string.
+ */
+int32_t mutstr_compare_literal(const MutStr *mutstr, const char *string);
+
+/**
+ * Returns true if the value of both MutStr objects are equal.
  *
  * @param a The first MutStr object.
  * @param b The second MutStr object.
- *
- * @return True if both MutStr objects are the same pointer or have the same string value.
  */
 bool mutstr_equals(const MutStr *a, const MutStr *b);
+
+/**
+ * Returns true if the value of the MutStr object is equal to the given string.
+ *
+ * @param mutstr The MutStr object.
+ * @param string The string to compare with.
+ * @param length The length of the string.
+ */
+bool mutstr_equals_string(const MutStr *mutstr, const char *string, int32_t length);
+
+/**
+ * Returns true if the value of the MutStr object is equal to the const string literal.
+ *
+ * @param mutstr The MutStr object.
+ * @param string The string to compare with (must be NULL terminated).
+ */
+bool mutstr_equals_literal(const MutStr *mutstr, const char *string);
 
 /**
  * Returns the zero-based index of the first occurrence of the needle.
@@ -124,14 +164,14 @@ int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t 
  * Returns the zero-based index of the first occurrence of the needle.
  *
  * @param mutstr The MutStr object.
- * @param needle The needle to search.
+ * @param needle The needle to search (must be NULL terminated).
  *
  * @return The zero-based index of the first occurrence or -1 if the needle is not present in the MutStr object.
  */
 int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle);
 
 /**
- * Returns true if the MutStr object contains the given needle.
+ * Returns true if the value of the MutStr object contains the given needle.
  *
  * @param mutstr The MutStr object.
  * @param needle The needle to search.
@@ -140,33 +180,49 @@ int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle);
 bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len);
 
 /**
- * Returns true if the MutStr object contains the given needle.
+ * Returns true if the value of the MutStr object contains the given needle.
  *
  * @param mutstr The MutStr object.
- * @param needle The needle to search.
- * @return
+ * @param needle The needle to search (must be NULL terminated).
  */
 bool mutstr_contains_literal(const MutStr *mutstr, const char *needle);
 
 /**
- * Returns true if the MutStr object starts with the given string.
+ * Returns true if the value of the MutStr object starts with the given string.
  *
  * @param mutstr The MutStr object.
  * @param prefix The string to compare with.
+ * @param prefix_len The length of the string.
+ */
+bool mutstr_starts_with_string(const MutStr *mutstr, const char *prefix, int32_t prefix_len);
+
+/**
+ * Returns true if the value of the MutStr object starts with the given const string literal.
+ *
+ * @param mutstr The MutStr object.
+ * @param prefix The string to compare with (must be NULL terminated).
  */
 bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix);
 
 /**
- * Returns true if the MutStr object ends with the given string.
+ * Returns true if the value of the MutStr object ends with the given string.
  *
  * @param mutstr The MutStr object.
  * @param suffix The string to compare with.
- * @return
+ * @param suffix_len The length of the string.
+ */
+bool mutstr_ends_with_string(const MutStr *mutstr, const char *suffix, int32_t suffix_len);
+
+/**
+ * Returns true if the value of the MutStr object ends with the given const string literal.
+ *
+ * @param mutstr The MutStr object.
+ * @param suffix The string to compare with (must be NULL terminated).
  */
 bool mutstr_ends_with_literal(const MutStr *mutstr, const char *suffix);
 
 /**
- * Appends the value of another MutStr object.
+ * Appends the value of other MutStr object.
  *
  * @param mutstr The MutStr object to append to.
  * @param other The MutStr object to copy from.
@@ -203,7 +259,7 @@ void mutstr_append_literal(MutStr *mutstr, const char *str);
  *
  * @param mutstr The MutStr object to append to.
  * @param fmt The format string literal (must be NULL terminated).
- * @param ...
+ * @param ... The format arguments.
  */
 void mutstr_append_format(MutStr *mutstr, const char *fmt, ...);
 
@@ -233,21 +289,21 @@ void mutstr_append_uint(MutStr *mutstr, uint64_t value);
 void mutstr_append_float(MutStr *mutstr, double value, int32_t precision);
 
 /**
- * Converts the string to uppercase.
+ * Transforms the value of the MutStr object to uppercase.
  *
  * @param mutstr The MutStr object to convert to uppercase.
  */
 void mutstr_to_uppercase(MutStr *mutstr);
 
 /**
- * Converts the string to lowercase.
+ * Transforms the value of the MutStr object to lowercase.
  *
  * @param mutstr The MutStr object to convert to lowercase.
  */
 void mutstr_to_lowercase(MutStr *mutstr);
 
 /**
- * Trims the whitespace off the MutStr object.
+ * Strips whitespace from the beginning and the end of the value of the MutStr object.
  *
  * @param mutstr The MutStr object to trim.
  * @param options Trim options.

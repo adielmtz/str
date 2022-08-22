@@ -129,23 +129,54 @@ void mutstr_copy(const MutStr *source, MutStr *destination)
     }
 }
 
+static int32_t mutstr_memcmp(const char *a, int32_t a_len, const char *b, int32_t b_len)
+{
+    int32_t result = memcmp(a, b, min(a_len, b_len));
+    if (!result) {
+        result = a_len - b_len;
+    }
+
+    return result;
+}
+
 int32_t mutstr_compare(const MutStr *a, const MutStr *b)
 {
     if (a == b) {
         return 0;
     }
 
-    int32_t result = memcmp(a->value, b->value, min(a->length, b->length));
-    if (!result) {
-        result = (int32_t) (a->length - b->length);
+    return mutstr_memcmp(a->value, a->length, b->value, b->length);
+}
+
+int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length)
+{
+    return mutstr_memcmp(mutstr->value, mutstr->length, string, length);
+}
+
+int32_t mutstr_compare_literal(const MutStr *mutstr, const char *string)
+{
+    int32_t length = mutstr_strnlen(string);
+    if (length == -1) {
+        return -1;
     }
 
-    return result;
+    return mutstr_memcmp(mutstr->value, mutstr->length, string, length);
 }
 
 bool mutstr_equals(const MutStr *a, const MutStr *b)
 {
     return a == b || (a->length == b->length && memcmp(a->value, b->value, a->length) == 0);
+}
+
+bool mutstr_equals_string(const MutStr *mutstr, const char *string, int32_t length)
+{
+    return mutstr->length == length && memcmp(mutstr->value, string, length) == 0;
+}
+
+bool mutstr_equals_literal(const MutStr *mutstr, const char *string)
+{
+    int32_t length = mutstr_strnlen(string);
+    return mutstr_equals_string(mutstr, string, length);
 }
 
 static char *mutstr_memmem(char *haystack, int32_t haystack_len, const char *needle, int32_t needle_len)
