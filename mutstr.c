@@ -403,3 +403,33 @@ void mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *
     result->length = length;
     result->value[length] = '\0';
 }
+
+void mutstr_repeat(MutStr *mutstr, int32_t multiply)
+{
+    if (multiply == 0 || mutstr->length == 0) {
+        // make it empty
+        mutstr->length = 0;
+        mutstr->value[0] = '\0';
+    } else {
+        int32_t length = mutstr->length * multiply;
+        mutstr_ensure_size(mutstr, length + 1);
+
+        if (mutstr->state == MUTSTR_OK) {
+            if (mutstr->length == 1) {
+                char c = mutstr->value[0];
+                memset(mutstr->value, c, length);
+            } else {
+                char *start = MUTSTR_TAIL_PTR(mutstr);
+                const char *end = mutstr->value + length;
+
+                while (start < end) {
+                    memmove(start, mutstr->value, mutstr->length);
+                    start += mutstr->length;
+                }
+            }
+
+            mutstr->length = length;
+            mutstr->value[length] = '\0';
+        }
+    }
+}

@@ -320,3 +320,11 @@ void mutstr_trim(MutStr *mutstr, MutStrTrimOptions options);
  * otherwise it will cause a double initialization, resulting in a memory leak.
  */
 void mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *result);
+
+/**
+ * Repeats the string n times.
+ *
+ * @param mutstr The MutStr object to repeat.
+ * @param multiply The number of times to repeat the string. A value of 0 will truncate the string to empty.
+ */
+void mutstr_repeat(MutStr *mutstr, int32_t multiply);
