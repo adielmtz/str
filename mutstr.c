@@ -406,6 +406,7 @@ void mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *
 
 void mutstr_repeat(MutStr *mutstr, int32_t multiply)
 {
+    MUTSTR_CLEAR_STATE(mutstr);
     if (multiply == 0 || mutstr->length == 0) {
         // make it empty
         mutstr->length = 0;
