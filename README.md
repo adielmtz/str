@@ -12,7 +12,7 @@ Copy `mutstr.h` & `mutstr.c` to your project directory and include it:
 
 ## Initialization
 
-Use the functions `mutstr_init()` or `mutstr_init_size()` to initialize a MutStr object.
+Use the functions `mutstr_init()` or `mutstr_allocate()` to initialize a MutStr object.
 After you're done working with your string, use `mutstr_finalize()` to deallocate the memory used by the MutStr object:
 
 ```c
