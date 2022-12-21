@@ -1,44 +1,29 @@
 #include "mutstr.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
 #define UNSIGNED_INT_MAX_STRLEN 20
+
 #define RETURN_CASE_AS_STRING(val) case val: return #val
 #define SWITCH_UNREACHABLE_DEFAULT_CASE() default: assert(0)
-
-#ifndef is_null
-#define is_null(ptr) ((ptr) == NULL)
-#endif
-
-#ifndef max
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-#endif
-
-#ifndef min
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#endif
 
 #define MUTSTR_DEFAULT_INITIAL_SIZE 16
 #define MUTSTR_TAIL_PTR(mutstr) ((mutstr)->val + (mutstr)->len)
 #define MUTSTR_TAIL_VAL(mutstr) (*MUTSTR_TAIL_PTR(mutstr))
 
-#define MUTSTR_CLEAR_MEMBERS(mutstr) \
-do {                                 \
-    (mutstr)->val = NULL;            \
-    (mutstr)->len = 0;               \
-    (mutstr)->size = 0;              \
-} while (0)
-
-#define MUTSTR_RETURN_IF_NULL(mutstr)                  \
-do {                                                   \
-    if (is_null((mutstr)) || is_null((mutstr)->val)) { \
-        return MUTSTR_ERROR_NULL_POINTER;              \
-    }                                                  \
+#define MUTSTR_CLEAR(mutstr) \
+do {                         \
+    (mutstr)->val = NULL;    \
+    (mutstr)->len = 0;       \
+    (mutstr)->size = 0;      \
 } while (0)
 
 const char *mutstr_get_state_msg(MutStrState state)
@@ -46,31 +31,27 @@ const char *mutstr_get_state_msg(MutStrState state)
     switch (state) {
         RETURN_CASE_AS_STRING(MUTSTR_OK);
         RETURN_CASE_AS_STRING(MUTSTR_ERROR);
-        RETURN_CASE_AS_STRING(MUTSTR_ERROR_NULL_POINTER);
-        RETURN_CASE_AS_STRING(MUTSTR_ERROR_MALLOC_FAILED);
-        RETURN_CASE_AS_STRING(MUTSTR_ERROR_UNKNOWN_LENGTH);
-        RETURN_CASE_AS_STRING(MUTSTR_ERROR_INDEX_OUT_OF_RANGE);
+        RETURN_CASE_AS_STRING(MUTSTR_NO_MEMORY);
+        RETURN_CASE_AS_STRING(MUTSTR_OUT_OF_RANGE);
         SWITCH_UNREACHABLE_DEFAULT_CASE();
     }
 }
 
 MutStrState mutstr_allocate(MutStr *result, int32_t size)
 {
-    if (is_null(result)) {
-        return MUTSTR_ERROR_NULL_POINTER;
+    MUTSTR_CLEAR(result);
+    if (size > 0) {
+        char *mem = malloc(sizeof(char) * size);
+        if (mem) {
+            mem[0] = '\0';
+            result->val = mem;
+            result->len = 0;
+            result->size = size;
+            return MUTSTR_OK;
+        }
     }
 
-    char *mem = malloc(sizeof(char) * size);
-    if (is_null(mem)) {
-        MUTSTR_CLEAR_MEMBERS(result);
-        return MUTSTR_ERROR_MALLOC_FAILED;
-    } else {
-        mem[0] = '\0';
-        result->val = mem;
-        result->len = 0;
-        result->size = size;
-        return MUTSTR_OK;
-    }
+    return MUTSTR_NO_MEMORY;
 }
 
 MutStrState mutstr_init(MutStr *result)
@@ -80,56 +61,36 @@ MutStrState mutstr_init(MutStr *result)
 
 void mutstr_finalize(MutStr *mutstr)
 {
-    if (!is_null(mutstr) && !is_null(mutstr->val)) {
+    if (mutstr && mutstr->val) {
         free(mutstr->val);
-        MUTSTR_CLEAR_MEMBERS(mutstr);
+        MUTSTR_CLEAR(mutstr);
     }
-}
-
-MutStrState mutstr_ensure_capacity(MutStr *mutstr, int32_t required_length)
-{
-    MUTSTR_RETURN_IF_NULL(mutstr);
-    if (required_length > mutstr->size) {
-        int32_t new_size = mutstr->size * 2;
-        if (required_length > new_size) {
-            new_size = required_length;
-        }
-
-        return mutstr_set_size(mutstr, new_size);
-    }
-
-    // allocated memory is large enough
-    return MUTSTR_OK;
 }
 
 MutStrState mutstr_set_size(MutStr *mutstr, int32_t size)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
-    if (size < 0) {
-        return MUTSTR_ERROR;
-    }
+    if (size > 0) {
+        char *mem = realloc(mutstr->val, sizeof(char) * size);
+        if (mem) {
+            mutstr->val = mem;
+            mutstr->size = size;
 
-    char *mem = realloc(mutstr->val, sizeof(char) * size);
-    if (is_null(mem)) {
-        return MUTSTR_ERROR_MALLOC_FAILED;
-    } else {
-        mutstr->val = mem;
-        mutstr->size = size;
+            if (size <= mutstr->len) {
+                mutstr->len = size - 1;
+                mutstr->val[mutstr->len] = '\0';
+            }
 
-        if (size <= mutstr->len) {
-            mutstr->len = size - 1;
-            mutstr->val[mutstr->len] = '\0';
+            return MUTSTR_OK;
         }
-
-        return MUTSTR_OK;
     }
+
+    return MUTSTR_NO_MEMORY;
 }
 
 MutStrState mutstr_set_length(MutStr *mutstr, int32_t length)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     if (length < 0) {
-        return MUTSTR_ERROR;
+        return MUTSTR_OUT_OF_RANGE;
     }
 
     MutStrState state = mutstr_ensure_capacity(mutstr, length + 1);
@@ -145,10 +106,23 @@ MutStrState mutstr_set_length(MutStr *mutstr, int32_t length)
     return state;
 }
 
+MutStrState mutstr_ensure_capacity(MutStr *mutstr, int32_t length)
+{
+    if (length > mutstr->size) {
+        int32_t new_size = mutstr->size * 2;
+        if (length > new_size) {
+            new_size = length;
+        }
+
+        return mutstr_set_size(mutstr, new_size);
+    }
+
+    /* Current allocated memory is large enough */
+    return MUTSTR_OK;
+}
+
 MutStrState mutstr_copy(const MutStr *source, MutStr *destination)
 {
-    MUTSTR_RETURN_IF_NULL(source);
-    MUTSTR_RETURN_IF_NULL(destination);
     MutStrState state = mutstr_allocate(destination, source->len + 1);
     if (state == MUTSTR_OK) {
         memcpy(destination->val, source->val, source->len);
@@ -160,7 +134,7 @@ MutStrState mutstr_copy(const MutStr *source, MutStr *destination)
 }
 
 /**
- * Compares 2 strings of known length.
+ * Compares 2 strings.
  */
 static int32_t mutstr_memncmp(const char *a, int32_t a_len, const char *b, int32_t b_len)
 {
@@ -181,11 +155,6 @@ int32_t mutstr_compare(const MutStr *a, const MutStr *b)
     return mutstr_memncmp(a->val, a->len, b->val, b->len);
 }
 
-int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length)
-{
-    return mutstr_memncmp(mutstr->val, mutstr->len, string, length);
-}
-
 /**
  * Calculates the length of the given string.
  * Returns INT32_MAX if the string is not null terminated.
@@ -194,6 +163,11 @@ static int32_t mutstr_strnlen(const char *s)
 {
     const char *n = memchr(s, '\0', INT32_MAX);
     return n == NULL ? INT32_MAX : (int32_t) (n - s);
+}
+
+int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length)
+{
+    return mutstr_memncmp(mutstr->val, mutstr->len, string, length);
 }
 
 int32_t mutstr_compare_literal(const MutStr *mutstr, const char *string)
@@ -244,10 +218,6 @@ static char *mutstr_memnstr(char *haystack, int32_t haystack_len, const char *ne
 
 int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
-    if (is_null(mutstr)) {
-        return -1;
-    }
-
     const char *s = mutstr_memnstr(mutstr->val, mutstr->len, needle, needle_len);
     return s == NULL ? -1 : (int32_t) (s - mutstr->val);
 }
@@ -265,7 +235,7 @@ bool mutstr_contains(const MutStr *mutstr, const MutStr *substr)
 bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
     const char *result = mutstr_memnstr(mutstr->val, mutstr->len, needle, needle_len);
-    return !is_null(result);
+    return result != NULL;
 }
 
 bool mutstr_contains_literal(const MutStr *mutstr, const char *needle)
@@ -310,9 +280,7 @@ MutStrState mutstr_append(MutStr *mutstr, const MutStr *other)
 
 MutStrState mutstr_append_char(MutStr *mutstr, char c)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     MutStrState state = mutstr_ensure_capacity(mutstr, mutstr->len + 2);
-
     if (state == MUTSTR_OK) {
         MUTSTR_TAIL_VAL(mutstr) = c;
         mutstr->len++;
@@ -324,7 +292,6 @@ MutStrState mutstr_append_char(MutStr *mutstr, char c)
 
 MutStrState mutstr_append_string(MutStr *mutstr, const char *str, int32_t length)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     int32_t new_length = mutstr->len + length;
     MutStrState state = mutstr_ensure_capacity(mutstr, new_length + 1);
 
@@ -344,7 +311,6 @@ MutStrState mutstr_append_literal(MutStr *mutstr, const char *str)
 
 MutStrState mutstr_append_format(MutStr *mutstr, const char *fmt, ...)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     va_list args;
     va_start(args, fmt);
 
@@ -421,21 +387,18 @@ static void case_convert(char *s, int32_t n, int (*convert)(int))
 
 MutStrState mutstr_to_uppercase(MutStr *mutstr)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     case_convert(mutstr->val, mutstr->len, toupper);
     return MUTSTR_OK;
 }
 
 MutStrState mutstr_to_lowercase(MutStr *mutstr)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     case_convert(mutstr->val, mutstr->len, tolower);
     return MUTSTR_OK;
 }
 
 MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     const char *s = mutstr->val;
     const char *e = MUTSTR_TAIL_PTR(mutstr);
 
@@ -472,9 +435,8 @@ MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
 
 MutStrState mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *result)
 {
-    MUTSTR_RETURN_IF_NULL(source);
     if (length < 0 || index < 0 || index >= source->len) {
-        return MUTSTR_ERROR_INDEX_OUT_OF_RANGE;
+        return MUTSTR_OUT_OF_RANGE;
     }
 
     const char *s = source->val + index;
@@ -494,7 +456,6 @@ MutStrState mutstr_substr(const MutStr *source, int32_t index, int32_t length, M
 
 MutStrState mutstr_repeat(MutStr *mutstr, int32_t multiply)
 {
-    MUTSTR_RETURN_IF_NULL(mutstr);
     if (multiply == 0 || mutstr->len == 0) {
         // truncate to empty
         mutstr->val[0] = '\0';

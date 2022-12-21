@@ -7,16 +7,10 @@ typedef enum MutStrState
 {
     MUTSTR_OK,
 
-    /* Generic error */
+    /* Errors */
     MUTSTR_ERROR,
-
-    /* Memory related errors */
-    MUTSTR_ERROR_NULL_POINTER,
-    MUTSTR_ERROR_MALLOC_FAILED,
-
-    /* String related errors */
-    MUTSTR_ERROR_UNKNOWN_LENGTH,
-    MUTSTR_ERROR_INDEX_OUT_OF_RANGE,
+    MUTSTR_NO_MEMORY,
+    MUTSTR_OUT_OF_RANGE,
 } MutStrState;
 
 typedef struct MutStr
@@ -67,17 +61,6 @@ MutStrState mutstr_init(MutStr *result);
 void mutstr_finalize(MutStr *mutstr);
 
 /**
- * Ensures that the allocated memory size is large enough for the required length.
- * If the allocated memory size is not enough, it will be re-allocated to double its original size.
- *
- * @param mutstr The MutStr object.
- * @param required_length The length that the MutStr object must be able to hold.
- *
- * @return MUTSTR_OK on success.
- */
-MutStrState mutstr_ensure_capacity(MutStr *mutstr, int32_t required_length);
-
-/**
  * Reallocates the memory used by the MutStr object to the given size.
  *
  * @param mutstr The MutStr object to reallocate.
@@ -98,6 +81,17 @@ MutStrState mutstr_set_size(MutStr *mutstr, int32_t size);
  * @return MUTSTR_OK on success.
  */
 MutStrState mutstr_set_length(MutStr *mutstr, int32_t length);
+
+/**
+ * Ensures that the allocated memory size is large enough for the required length.
+ * If the allocated memory size is not enough, it will be re-allocated to double its original size.
+ *
+ * @param mutstr The MutStr object.
+ * @param length The length that the MutStr object must be able to hold.
+ *
+ * @return MUTSTR_OK on success.
+ */
+MutStrState mutstr_ensure_capacity(MutStr *mutstr, int32_t length);
 
 /**
  * Copies the value of a MutStr object to an uninitialized MutStr object.
