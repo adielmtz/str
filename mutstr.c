@@ -165,14 +165,13 @@ static int32_t mutstr_strnlen(const char *s)
     return n == NULL ? INT32_MAX : (int32_t) (n - s);
 }
 
-int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length)
+int32_t mutstr_compare_str(const MutStr *mutstr, const char *string, int32_t length)
 {
-    return mutstr_memncmp(mutstr->val, mutstr->len, string, length);
-}
+    if (length < 0) {
+        length = mutstr_strnlen(string);
+    }
 
-int32_t mutstr_compare_literal(const MutStr *mutstr, const char *string)
-{
-    return mutstr_memncmp(mutstr->val, mutstr->len, string, mutstr_strnlen(string));
+    return mutstr_memncmp(mutstr->val, mutstr->len, string, length);
 }
 
 bool mutstr_equals(const MutStr *a, const MutStr *b)
@@ -180,14 +179,13 @@ bool mutstr_equals(const MutStr *a, const MutStr *b)
     return a == b || (a->len == b->len && memcmp(a->val, b->val, a->len) == 0);
 }
 
-bool mutstr_equals_string(const MutStr *mutstr, const char *string, int32_t length)
+bool mutstr_equals_str(const MutStr *mutstr, const char *string, int32_t length)
 {
-    return mutstr->len == length && memcmp(mutstr->val, string, length) == 0;
-}
+    if (length < 0) {
+        length = mutstr_strnlen(string);
+    }
 
-bool mutstr_equals_literal(const MutStr *mutstr, const char *string)
-{
-    return mutstr_equals_string(mutstr, string, mutstr_strnlen(string));
+    return mutstr->len == length && memcmp(mutstr->val, string, length) == 0;
 }
 
 static char *mutstr_memnstr(char *haystack, int32_t haystack_len, const char *needle, int32_t needle_len)
@@ -216,66 +214,62 @@ static char *mutstr_memnstr(char *haystack, int32_t haystack_len, const char *ne
     return NULL;
 }
 
-int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
+int32_t mutstr_indexof_str(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
+    if (needle_len < 0) {
+        needle_len = mutstr_strnlen(needle);
+    }
+
     const char *s = mutstr_memnstr(mutstr->val, mutstr->len, needle, needle_len);
     return s == NULL ? -1 : (int32_t) (s - mutstr->val);
 }
 
-int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle)
-{
-    return mutstr_indexof_string(mutstr, needle, mutstr_strnlen(needle));
-}
-
 bool mutstr_contains(const MutStr *mutstr, const MutStr *substr)
 {
-    return mutstr_contains_string(mutstr, substr->val, substr->len);
+    return mutstr_contains_str(mutstr, substr->val, substr->len);
 }
 
-bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
+bool mutstr_contains_str(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
+    if (needle_len < 0) {
+        needle_len = mutstr_strnlen(needle);
+    }
+
     const char *result = mutstr_memnstr(mutstr->val, mutstr->len, needle, needle_len);
     return result != NULL;
 }
 
-bool mutstr_contains_literal(const MutStr *mutstr, const char *needle)
-{
-    return mutstr_contains_string(mutstr, needle, mutstr_strnlen(needle));
-}
-
 bool mutstr_starts_with(const MutStr *mutstr, const MutStr *prefix)
 {
-    return mutstr_starts_with_string(mutstr, prefix->val, prefix->len);
+    return mutstr_starts_with_str(mutstr, prefix->val, prefix->len);
 }
 
-bool mutstr_starts_with_string(const MutStr *mutstr, const char *prefix, int32_t prefix_len)
+bool mutstr_starts_with_str(const MutStr *mutstr, const char *prefix, int32_t prefix_len)
 {
+    if (prefix_len < 0) {
+        prefix_len = mutstr_strnlen(prefix);
+    }
+
     return prefix_len >= 0 && memcmp(mutstr->val, prefix, prefix_len) == 0;
-}
-
-bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix)
-{
-    return mutstr_starts_with_string(mutstr, prefix, mutstr_strnlen(prefix));
 }
 
 bool mutstr_ends_with(const MutStr *mutstr, const MutStr *suffix)
 {
-    return mutstr_ends_with_string(mutstr, suffix->val, suffix->len);
+    return mutstr_ends_with_str(mutstr, suffix->val, suffix->len);
 }
 
-bool mutstr_ends_with_string(const MutStr *mutstr, const char *suffix, int32_t suffix_len)
+bool mutstr_ends_with_str(const MutStr *mutstr, const char *suffix, int32_t suffix_len)
 {
+    if (suffix_len < 0) {
+        suffix_len = mutstr_strnlen(suffix);
+    }
+
     return suffix_len >= 0 && memcmp(MUTSTR_TAIL_PTR(mutstr) - suffix_len, suffix, suffix_len) == 0;
-}
-
-bool mutstr_ends_with_literal(const MutStr *mutstr, const char *suffix)
-{
-    return mutstr_ends_with_string(mutstr, suffix, mutstr_strnlen(suffix));
 }
 
 MutStrState mutstr_append(MutStr *mutstr, const MutStr *other)
 {
-    return mutstr_append_string(mutstr, other->val, other->len);
+    return mutstr_append_str(mutstr, other->val, other->len);
 }
 
 MutStrState mutstr_append_char(MutStr *mutstr, char c)
@@ -290,8 +284,12 @@ MutStrState mutstr_append_char(MutStr *mutstr, char c)
     return state;
 }
 
-MutStrState mutstr_append_string(MutStr *mutstr, const char *str, int32_t length)
+MutStrState mutstr_append_str(MutStr *mutstr, const char *str, int32_t length)
 {
+    if (length < 0) {
+        length = mutstr_strnlen(str);
+    }
+
     int32_t new_length = mutstr->len + length;
     MutStrState state = mutstr_ensure_capacity(mutstr, new_length + 1);
 
@@ -302,11 +300,6 @@ MutStrState mutstr_append_string(MutStr *mutstr, const char *str, int32_t length
     }
 
     return state;
-}
-
-MutStrState mutstr_append_literal(MutStr *mutstr, const char *str)
-{
-    return mutstr_append_string(mutstr, str, mutstr_strnlen(str));
 }
 
 MutStrState mutstr_append_format(MutStr *mutstr, const char *fmt, ...)
@@ -356,7 +349,7 @@ MutStrState mutstr_append_int(MutStr *mutstr, int64_t value)
     } else {
         char buffer[UNSIGNED_INT_MAX_STRLEN + 1];
         char *result = int_to_str(buffer + sizeof(buffer) - 1, value);
-        return mutstr_append_string(mutstr, result, (int32_t) (buffer + sizeof(buffer) - 1 - result));
+        return mutstr_append_str(mutstr, result, (int32_t) (buffer + sizeof(buffer) - 1 - result));
     }
 }
 
@@ -367,7 +360,7 @@ MutStrState mutstr_append_uint(MutStr *mutstr, uint64_t value)
     } else {
         char buffer[UNSIGNED_INT_MAX_STRLEN + 1];
         char *result = uint_to_str(buffer + sizeof(buffer) - 1, value);
-        return mutstr_append_string(mutstr, result, (int32_t) (buffer + sizeof(buffer) - 1 - result));
+        return mutstr_append_str(mutstr, result, (int32_t) (buffer + sizeof(buffer) - 1 - result));
     }
 }
 

@@ -127,19 +127,7 @@ int32_t mutstr_compare(const MutStr *a, const MutStr *b);
  * 0 if the value of the MutStr object equals the value of the string.
  * 1 if the value of the MutStr object is greater than the value of the string.
  */
-int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length);
-
-/**
- * Compares the value of the MutStr object with a const string literal.
- *
- * @param mutstr The MutStr object.
- * @param string The string to compare with (must be NULL terminated).
- *
- * @return -1 if the value of the MutStr object is less than the value of the string.
- * 0 if the value of the MutStr object equals the value of the string.
- * 1 if the value of the MutStr object is greater than the value of the string.
- */
-int32_t mutstr_compare_literal(const MutStr *mutstr, const char *string);
+int32_t mutstr_compare_str(const MutStr *mutstr, const char *string, int32_t length);
 
 /**
  * Returns true if the value of both MutStr objects are equal.
@@ -156,15 +144,7 @@ bool mutstr_equals(const MutStr *a, const MutStr *b);
  * @param string The string to compare with.
  * @param length The length of the string.
  */
-bool mutstr_equals_string(const MutStr *mutstr, const char *string, int32_t length);
-
-/**
- * Returns true if the value of the MutStr object is equal to the const string literal.
- *
- * @param mutstr The MutStr object.
- * @param string The string to compare with (must be NULL terminated).
- */
-bool mutstr_equals_literal(const MutStr *mutstr, const char *string);
+bool mutstr_equals_str(const MutStr *mutstr, const char *string, int32_t length);
 
 /**
  * Returns the zero-based index of the first occurrence of the needle.
@@ -175,17 +155,7 @@ bool mutstr_equals_literal(const MutStr *mutstr, const char *string);
  *
  * @return The zero-based index of the first occurrence or -1 if the needle is not present in the MutStr object.
  */
-int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t needle_len);
-
-/**
- * Returns the zero-based index of the first occurrence of the needle.
- *
- * @param mutstr The MutStr object.
- * @param needle The needle to search (must be NULL terminated).
- *
- * @return The zero-based index of the first occurrence or -1 if the needle is not present in the MutStr object.
- */
-int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle);
+int32_t mutstr_indexof_str(const MutStr *mutstr, const char *needle, int32_t needle_len);
 
 /**
  * Returns true if the value of the MutStr object contains the substring in another MutStr object.
@@ -202,15 +172,7 @@ bool mutstr_contains(const MutStr *mutstr, const MutStr *substr);
  * @param needle The needle to search.
  * @param needle_len The length of the needle.
  */
-bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len);
-
-/**
- * Returns true if the value of the MutStr object contains the given needle.
- *
- * @param mutstr The MutStr object.
- * @param needle The needle to search (must be NULL terminated).
- */
-bool mutstr_contains_literal(const MutStr *mutstr, const char *needle);
+bool mutstr_contains_str(const MutStr *mutstr, const char *needle, int32_t needle_len);
 
 /**
  * Returns true if the value of the MutStr object starts with the value of the given MutStr object.
@@ -227,15 +189,7 @@ bool mutstr_starts_with(const MutStr *mutstr, const MutStr *prefix);
  * @param prefix The string to search.
  * @param prefix_len The length of the string.
  */
-bool mutstr_starts_with_string(const MutStr *mutstr, const char *prefix, int32_t prefix_len);
-
-/**
- * Returns true if the value of the MutStr object starts with the given const string literal.
- *
- * @param mutstr The MutStr object.
- * @param prefix The string to search (must be NULL terminated).
- */
-bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix);
+bool mutstr_starts_with_str(const MutStr *mutstr, const char *prefix, int32_t prefix_len);
 
 /**
  * Returns true if the value of the MutStr object ends with the value of the given MutStr object.
@@ -252,15 +206,7 @@ bool mutstr_ends_with(const MutStr *mutstr, const MutStr *suffix);
  * @param suffix The string to search.
  * @param suffix_len The length of the string.
  */
-bool mutstr_ends_with_string(const MutStr *mutstr, const char *suffix, int32_t suffix_len);
-
-/**
- * Returns true if the value of the MutStr object ends with the given const string literal.
- *
- * @param mutstr The MutStr object.
- * @param suffix The string to search (must be NULL terminated).
- */
-bool mutstr_ends_with_literal(const MutStr *mutstr, const char *suffix);
+bool mutstr_ends_with_str(const MutStr *mutstr, const char *suffix, int32_t suffix_len);
 
 /**
  * Appends the value of other MutStr object.
@@ -291,17 +237,7 @@ MutStrState mutstr_append_char(MutStr *mutstr, char c);
  *
  * @return MUTSTR_OK on success.
  */
-MutStrState mutstr_append_string(MutStr *mutstr, const char *str, int32_t length);
-
-/**
- * Appends a string literal.
- *
- * @param mutstr The MutStr object to append to.
- * @param str The string literal to append (must be NULL terminated).
- *
- * @return MUTSTR_OK on success.
- */
-MutStrState mutstr_append_literal(MutStr *mutstr, const char *str);
+MutStrState mutstr_append_str(MutStr *mutstr, const char *str, int32_t length);
 
 /**
  * Appends a formatted string.
