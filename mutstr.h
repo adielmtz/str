@@ -349,19 +349,15 @@ MutStrState mutstr_append_float(MutStr *mutstr, double value, int32_t precision)
  * Transforms the value of the MutStr object to uppercase.
  *
  * @param mutstr The MutStr object to convert to uppercase.
- *
- * @return MUTSTR_OK on success.
  */
-MutStrState mutstr_to_uppercase(MutStr *mutstr);
+void mutstr_to_uppercase(MutStr *mutstr);
 
 /**
  * Transforms the value of the MutStr object to lowercase.
  *
  * @param mutstr The MutStr object to convert to lowercase.
- *
- * @return MUTSTR_OK on success.
  */
-MutStrState mutstr_to_lowercase(MutStr *mutstr);
+void mutstr_to_lowercase(MutStr *mutstr);
 
 /**
  * Strips whitespace from the beginning and the end of the value of the MutStr object.

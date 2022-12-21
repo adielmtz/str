@@ -385,16 +385,14 @@ static void case_convert(char *s, int32_t n, int (*convert)(int))
     }
 }
 
-MutStrState mutstr_to_uppercase(MutStr *mutstr)
+void mutstr_to_uppercase(MutStr *mutstr)
 {
     case_convert(mutstr->val, mutstr->len, toupper);
-    return MUTSTR_OK;
 }
 
-MutStrState mutstr_to_lowercase(MutStr *mutstr)
+void mutstr_to_lowercase(MutStr *mutstr)
 {
     case_convert(mutstr->val, mutstr->len, tolower);
-    return MUTSTR_OK;
 }
 
 MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
