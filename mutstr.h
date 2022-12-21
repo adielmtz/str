@@ -35,23 +35,23 @@ typedef enum MutStrTrimOptions
 const char *mutstr_get_state_msg(MutStrState state);
 
 /**
- * Initializes a MutStr object allocating the given memory size.
- *
- * @param result The MutStr object to initialize.
- * @param size The size of memory to allocate.
- *
- * @return MUTSTR_OK on success.
- */
-MutStrState mutstr_allocate(MutStr *result, int32_t size);
-
-/**
  * Initializes a MutStr object.
  *
- * @param result The MutStr object to initialize.
+ * @param result The MutStr handle to initialize.
  *
  * @return MUTSTR_OK on success.
  */
 MutStrState mutstr_init(MutStr *result);
+
+/**
+ * Initializes a MutStr object allocating enough memory for the requested string length.
+ *
+ * @param result The MutStr handle to initialize.
+ * @param length The length of memory to allocate.
+ *
+ * @return MUTSTR_OK on success.
+ */
+MutStrState mutstr_init_with_length(MutStr *result, int32_t length);
 
 /**
  * Deallocates the allocated memory of the given MutStr object.

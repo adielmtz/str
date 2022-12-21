@@ -37,7 +37,7 @@ const char *mutstr_get_state_msg(MutStrState state)
     }
 }
 
-MutStrState mutstr_allocate(MutStr *result, int32_t size)
+static MutStrState mutstr_allocate(MutStr *result, int32_t size)
 {
     MUTSTR_CLEAR(result);
     if (size > 0) {
@@ -57,6 +57,11 @@ MutStrState mutstr_allocate(MutStr *result, int32_t size)
 MutStrState mutstr_init(MutStr *result)
 {
     return mutstr_allocate(result, MUTSTR_DEFAULT_INITIAL_SIZE);
+}
+
+MutStrState mutstr_init_with_length(MutStr *result, int32_t length)
+{
+    return mutstr_allocate(result, length + 1);
 }
 
 void mutstr_finalize(MutStr *mutstr)
