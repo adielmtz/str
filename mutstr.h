@@ -21,9 +21,9 @@ typedef enum MutStrState
 
 typedef struct MutStr
 {
-    char *value;
-    int32_t length;
-    int32_t size;
+    char *val;    /* The string pointer */
+    int32_t len;  /* The length (bytes) of the string */
+    int32_t size; /* The allocated memory size */
 } MutStr;
 
 typedef enum MutStrTrimOptions

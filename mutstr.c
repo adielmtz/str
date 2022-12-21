@@ -24,21 +24,21 @@
 #endif
 
 #define MUTSTR_DEFAULT_INITIAL_SIZE 16
-#define MUTSTR_TAIL_PTR(mutstr) ((mutstr)->value + (mutstr)->length)
+#define MUTSTR_TAIL_PTR(mutstr) ((mutstr)->val + (mutstr)->len)
 #define MUTSTR_TAIL_VAL(mutstr) (*MUTSTR_TAIL_PTR(mutstr))
 
 #define MUTSTR_CLEAR_MEMBERS(mutstr) \
 do {                                 \
-    (mutstr)->value = NULL;          \
-    (mutstr)->length = 0;            \
+    (mutstr)->val = NULL;            \
+    (mutstr)->len = 0;               \
     (mutstr)->size = 0;              \
 } while (0)
 
-#define MUTSTR_RETURN_IF_NULL(mutstr)                    \
-do {                                                     \
-    if (is_null((mutstr)) || is_null((mutstr)->value)) { \
-        return MUTSTR_ERROR_NULL_POINTER;                \
-    }                                                    \
+#define MUTSTR_RETURN_IF_NULL(mutstr)                  \
+do {                                                   \
+    if (is_null((mutstr)) || is_null((mutstr)->val)) { \
+        return MUTSTR_ERROR_NULL_POINTER;              \
+    }                                                  \
 } while (0)
 
 const char *mutstr_get_state_msg(MutStrState state)
@@ -66,8 +66,8 @@ MutStrState mutstr_allocate(MutStr *result, int32_t size)
         return MUTSTR_ERROR_MALLOC_FAILED;
     } else {
         mem[0] = '\0';
-        result->value = mem;
-        result->length = 0;
+        result->val = mem;
+        result->len = 0;
         result->size = size;
         return MUTSTR_OK;
     }
@@ -80,8 +80,8 @@ MutStrState mutstr_init(MutStr *result)
 
 void mutstr_finalize(MutStr *mutstr)
 {
-    if (!is_null(mutstr) && !is_null(mutstr->value)) {
-        free(mutstr->value);
+    if (!is_null(mutstr) && !is_null(mutstr->val)) {
+        free(mutstr->val);
         MUTSTR_CLEAR_MEMBERS(mutstr);
     }
 }
@@ -109,16 +109,16 @@ MutStrState mutstr_set_size(MutStr *mutstr, int32_t size)
         return MUTSTR_ERROR;
     }
 
-    char *mem = realloc(mutstr->value, sizeof(char) * size);
+    char *mem = realloc(mutstr->val, sizeof(char) * size);
     if (is_null(mem)) {
         return MUTSTR_ERROR_MALLOC_FAILED;
     } else {
-        mutstr->value = mem;
+        mutstr->val = mem;
         mutstr->size = size;
 
-        if (size <= mutstr->length) {
-            mutstr->length = size - 1;
-            mutstr->value[mutstr->length] = '\0';
+        if (size <= mutstr->len) {
+            mutstr->len = size - 1;
+            mutstr->val[mutstr->len] = '\0';
         }
 
         return MUTSTR_OK;
@@ -134,12 +134,12 @@ MutStrState mutstr_set_length(MutStr *mutstr, int32_t length)
 
     MutStrState state = mutstr_ensure_capacity(mutstr, length + 1);
     if (state == MUTSTR_OK) {
-        if (length > mutstr->length) {
-            memset(MUTSTR_TAIL_PTR(mutstr), '\0', length - mutstr->length);
+        if (length > mutstr->len) {
+            memset(MUTSTR_TAIL_PTR(mutstr), '\0', length - mutstr->len);
         }
 
-        mutstr->length = length;
-        mutstr->value[length] = '\0';
+        mutstr->len = length;
+        mutstr->val[length] = '\0';
     }
 
     return state;
@@ -149,11 +149,11 @@ MutStrState mutstr_copy(const MutStr *source, MutStr *destination)
 {
     MUTSTR_RETURN_IF_NULL(source);
     MUTSTR_RETURN_IF_NULL(destination);
-    MutStrState state = mutstr_allocate(destination, source->length + 1);
+    MutStrState state = mutstr_allocate(destination, source->len + 1);
     if (state == MUTSTR_OK) {
-        memcpy(destination->value, source->value, source->length);
-        destination->length = source->length;
-        destination->value[destination->length] = '\0';
+        memcpy(destination->val, source->val, source->len);
+        destination->len = source->len;
+        destination->val[destination->len] = '\0';
     }
 
     return state;
@@ -178,12 +178,12 @@ int32_t mutstr_compare(const MutStr *a, const MutStr *b)
         return 0;
     }
 
-    return mutstr_memncmp(a->value, a->length, b->value, b->length);
+    return mutstr_memncmp(a->val, a->len, b->val, b->len);
 }
 
 int32_t mutstr_compare_string(const MutStr *mutstr, const char *string, int32_t length)
 {
-    return mutstr_memncmp(mutstr->value, mutstr->length, string, length);
+    return mutstr_memncmp(mutstr->val, mutstr->len, string, length);
 }
 
 /**
@@ -198,17 +198,17 @@ static int32_t mutstr_strnlen(const char *s)
 
 int32_t mutstr_compare_literal(const MutStr *mutstr, const char *string)
 {
-    return mutstr_memncmp(mutstr->value, mutstr->length, string, mutstr_strnlen(string));
+    return mutstr_memncmp(mutstr->val, mutstr->len, string, mutstr_strnlen(string));
 }
 
 bool mutstr_equals(const MutStr *a, const MutStr *b)
 {
-    return a == b || (a->length == b->length && memcmp(a->value, b->value, a->length) == 0);
+    return a == b || (a->len == b->len && memcmp(a->val, b->val, a->len) == 0);
 }
 
 bool mutstr_equals_string(const MutStr *mutstr, const char *string, int32_t length)
 {
-    return mutstr->length == length && memcmp(mutstr->value, string, length) == 0;
+    return mutstr->len == length && memcmp(mutstr->val, string, length) == 0;
 }
 
 bool mutstr_equals_literal(const MutStr *mutstr, const char *string)
@@ -248,8 +248,8 @@ int32_t mutstr_indexof_string(const MutStr *mutstr, const char *needle, int32_t 
         return -1;
     }
 
-    const char *s = mutstr_memnstr(mutstr->value, mutstr->length, needle, needle_len);
-    return s == NULL ? -1 : (int32_t) (s - mutstr->value);
+    const char *s = mutstr_memnstr(mutstr->val, mutstr->len, needle, needle_len);
+    return s == NULL ? -1 : (int32_t) (s - mutstr->val);
 }
 
 int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle)
@@ -259,12 +259,12 @@ int32_t mutstr_indexof_literal(const MutStr *mutstr, const char *needle)
 
 bool mutstr_contains(const MutStr *mutstr, const MutStr *substr)
 {
-    return mutstr_contains_string(mutstr, substr->value, substr->length);
+    return mutstr_contains_string(mutstr, substr->val, substr->len);
 }
 
 bool mutstr_contains_string(const MutStr *mutstr, const char *needle, int32_t needle_len)
 {
-    const char *result = mutstr_memnstr(mutstr->value, mutstr->length, needle, needle_len);
+    const char *result = mutstr_memnstr(mutstr->val, mutstr->len, needle, needle_len);
     return !is_null(result);
 }
 
@@ -275,12 +275,12 @@ bool mutstr_contains_literal(const MutStr *mutstr, const char *needle)
 
 bool mutstr_starts_with(const MutStr *mutstr, const MutStr *prefix)
 {
-    return mutstr_starts_with_string(mutstr, prefix->value, prefix->length);
+    return mutstr_starts_with_string(mutstr, prefix->val, prefix->len);
 }
 
 bool mutstr_starts_with_string(const MutStr *mutstr, const char *prefix, int32_t prefix_len)
 {
-    return prefix_len >= 0 && memcmp(mutstr->value, prefix, prefix_len) == 0;
+    return prefix_len >= 0 && memcmp(mutstr->val, prefix, prefix_len) == 0;
 }
 
 bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix)
@@ -290,7 +290,7 @@ bool mutstr_starts_with_literal(const MutStr *mutstr, const char *prefix)
 
 bool mutstr_ends_with(const MutStr *mutstr, const MutStr *suffix)
 {
-    return mutstr_ends_with_string(mutstr, suffix->value, suffix->length);
+    return mutstr_ends_with_string(mutstr, suffix->val, suffix->len);
 }
 
 bool mutstr_ends_with_string(const MutStr *mutstr, const char *suffix, int32_t suffix_len)
@@ -305,18 +305,18 @@ bool mutstr_ends_with_literal(const MutStr *mutstr, const char *suffix)
 
 MutStrState mutstr_append(MutStr *mutstr, const MutStr *other)
 {
-    return mutstr_append_string(mutstr, other->value, other->length);
+    return mutstr_append_string(mutstr, other->val, other->len);
 }
 
 MutStrState mutstr_append_char(MutStr *mutstr, char c)
 {
     MUTSTR_RETURN_IF_NULL(mutstr);
-    MutStrState state = mutstr_ensure_capacity(mutstr, mutstr->length + 2);
+    MutStrState state = mutstr_ensure_capacity(mutstr, mutstr->len + 2);
 
     if (state == MUTSTR_OK) {
         MUTSTR_TAIL_VAL(mutstr) = c;
-        mutstr->length++;
-        mutstr->value[mutstr->length] = '\0';
+        mutstr->len++;
+        mutstr->val[mutstr->len] = '\0';
     }
 
     return state;
@@ -325,13 +325,13 @@ MutStrState mutstr_append_char(MutStr *mutstr, char c)
 MutStrState mutstr_append_string(MutStr *mutstr, const char *str, int32_t length)
 {
     MUTSTR_RETURN_IF_NULL(mutstr);
-    int32_t new_length = mutstr->length + length;
+    int32_t new_length = mutstr->len + length;
     MutStrState state = mutstr_ensure_capacity(mutstr, new_length + 1);
 
     if (state == MUTSTR_OK) {
         memcpy(MUTSTR_TAIL_PTR(mutstr), str, length);
-        mutstr->length = new_length;
-        mutstr->value[new_length] = '\0';
+        mutstr->len = new_length;
+        mutstr->val[new_length] = '\0';
     }
 
     return state;
@@ -349,13 +349,13 @@ MutStrState mutstr_append_format(MutStr *mutstr, const char *fmt, ...)
     va_start(args, fmt);
 
     int32_t length = vsnprintf(NULL, 0, fmt, args);
-    int32_t new_length = mutstr->length + length;
+    int32_t new_length = mutstr->len + length;
     MutStrState state = mutstr_ensure_capacity(mutstr, new_length + 1);
 
     if (state == MUTSTR_OK) {
-        vsnprintf(MUTSTR_TAIL_PTR(mutstr), mutstr->size - mutstr->length, fmt, args);
-        mutstr->length = new_length;
-        mutstr->value[new_length] = '\0';
+        vsnprintf(MUTSTR_TAIL_PTR(mutstr), mutstr->size - mutstr->len, fmt, args);
+        mutstr->len = new_length;
+        mutstr->val[new_length] = '\0';
     }
 
     va_end(args);
@@ -422,21 +422,21 @@ static void case_convert(char *s, int32_t n, int (*convert)(int))
 MutStrState mutstr_to_uppercase(MutStr *mutstr)
 {
     MUTSTR_RETURN_IF_NULL(mutstr);
-    case_convert(mutstr->value, mutstr->length, toupper);
+    case_convert(mutstr->val, mutstr->len, toupper);
     return MUTSTR_OK;
 }
 
 MutStrState mutstr_to_lowercase(MutStr *mutstr)
 {
     MUTSTR_RETURN_IF_NULL(mutstr);
-    case_convert(mutstr->value, mutstr->length, tolower);
+    case_convert(mutstr->val, mutstr->len, tolower);
     return MUTSTR_OK;
 }
 
 MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
 {
     MUTSTR_RETURN_IF_NULL(mutstr);
-    const char *s = mutstr->value;
+    const char *s = mutstr->val;
     const char *e = MUTSTR_TAIL_PTR(mutstr);
 
     if (options & MUTSTR_TRIM_LEFT) {
@@ -447,8 +447,8 @@ MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
 
     if (s == e) {
         // truncate to empty string
-        mutstr->value[0] = '\0';
-        mutstr->length = 0;
+        mutstr->val[0] = '\0';
+        mutstr->len = 0;
     } else {
         // skip trailing null
         e--;
@@ -459,12 +459,12 @@ MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
         }
 
         int32_t length = (int32_t) (e - s) + 1;
-        if (s > mutstr->value) {
-            memmove(mutstr->value, s, length);
+        if (s > mutstr->val) {
+            memmove(mutstr->val, s, length);
         }
 
-        mutstr->length = length;
-        mutstr->value[length] = '\0';
+        mutstr->len = length;
+        mutstr->val[length] = '\0';
     }
 
     return MUTSTR_OK;
@@ -473,20 +473,20 @@ MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
 MutStrState mutstr_substr(const MutStr *source, int32_t index, int32_t length, MutStr *result)
 {
     MUTSTR_RETURN_IF_NULL(source);
-    if (length < 0 || index < 0 || index >= source->length) {
+    if (length < 0 || index < 0 || index >= source->len) {
         return MUTSTR_ERROR_INDEX_OUT_OF_RANGE;
     }
 
-    const char *s = source->value + index;
+    const char *s = source->val + index;
     if (s + length >= MUTSTR_TAIL_PTR(source)) {
         length = MUTSTR_TAIL_PTR(source) - s;
     }
 
     MutStrState state = mutstr_allocate(result, length + 1);
     if (state == MUTSTR_OK) {
-        memcpy(result->value, s, length);
-        result->length = length;
-        result->value[length] = '\0';
+        memcpy(result->val, s, length);
+        result->len = length;
+        result->val[length] = '\0';
     }
 
     return state;
@@ -495,30 +495,30 @@ MutStrState mutstr_substr(const MutStr *source, int32_t index, int32_t length, M
 MutStrState mutstr_repeat(MutStr *mutstr, int32_t multiply)
 {
     MUTSTR_RETURN_IF_NULL(mutstr);
-    if (multiply == 0 || mutstr->length == 0) {
+    if (multiply == 0 || mutstr->len == 0) {
         // truncate to empty
-        mutstr->value[0] = '\0';
-        mutstr->length = 0;
+        mutstr->val[0] = '\0';
+        mutstr->len = 0;
         return MUTSTR_OK;
     }
 
-    int32_t length = mutstr->length * multiply;
+    int32_t length = mutstr->len * multiply;
     MutStrState state = mutstr_ensure_capacity(mutstr, length + 1);
     if (state == MUTSTR_OK) {
-        if (mutstr->length == 1) {
-            memset(mutstr->value, mutstr->value[0], length);
+        if (mutstr->len == 1) {
+            memset(mutstr->val, mutstr->val[0], length);
         } else {
             char *s = MUTSTR_TAIL_PTR(mutstr);
-            const char *e = mutstr->value + length;
+            const char *e = mutstr->val + length;
 
             while (s < e) {
-                memmove(s, mutstr->value, mutstr->length);
-                s += mutstr->length;
+                memmove(s, mutstr->val, mutstr->len);
+                s += mutstr->len;
             }
         }
 
-        mutstr->value[length] = '\0';
-        mutstr->length = length;
+        mutstr->val[length] = '\0';
+        mutstr->len = length;
     }
 
     return state;
