@@ -376,9 +376,10 @@ MutStrState mutstr_append_float(MutStr *mutstr, double value, int32_t precision)
     return mutstr_append_format(mutstr, "%.*f", precision, value);
 }
 
-static void case_convert(char *s, int32_t n, int (*convert)(int))
+static void case_convert(const MutStr *mutstr, int (*convert)(int))
 {
-    const char *e = s + n;
+    char *s = mutstr->val;
+    const char *e = MUTSTR_TAIL_PTR(mutstr);
     while (s < e) {
         *s = (char) convert(*s);
         s++;
@@ -387,12 +388,12 @@ static void case_convert(char *s, int32_t n, int (*convert)(int))
 
 void mutstr_to_uppercase(MutStr *mutstr)
 {
-    case_convert(mutstr->val, mutstr->len, toupper);
+    case_convert(mutstr, toupper);
 }
 
 void mutstr_to_lowercase(MutStr *mutstr)
 {
-    case_convert(mutstr->val, mutstr->len, tolower);
+    case_convert(mutstr, tolower);
 }
 
 MutStrState mutstr_trim(MutStr *mutstr, MutStrTrimOptions options)
